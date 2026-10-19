@@ -1,0 +1,13 @@
+node_modules
+dist
+coverage
+playwright-report
+test-results
+blob-report
+*.local
+.env
+.env.*
+!.env.example
+# Personal profile pack: never commit or deploy
+profile.local.json
+private/

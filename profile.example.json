@@ -1,0 +1,20 @@
+{
+  "kind": "sdet-quest-profile",
+  "version": 1,
+  "profile": {
+    "name": "Your Name",
+    "headline": "Your current role and team",
+    "primaryLanguage": "javascript",
+    "targetRoles": ["SDET 3", "QA Lead"],
+    "cvFacts": [
+      "One true, specific fact per line, copied from your CV (company, dates, scope, measured results).",
+      "These are shown back to you during behavioral practice so you answer from real experience."
+    ]
+  },
+  "diagnostics": [
+    { "id": "diag-example-pyramid", "skill": "fundamentals", "topic": "Test pyramid", "score": 0.3, "at": "2026-01-01T10:00:00.000Z", "relatedItems": ["m01-q1", "interview:iv-m01-pyramid"] }
+  ],
+  "selfRatings": [
+    { "skill": "dsa", "topic": "Coding patterns", "rating": 2, "at": "2026-01-01T10:00:00.000Z" }
+  ]
+}
