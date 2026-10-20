@@ -21,8 +21,8 @@ test('an invalid profile pack is rejected with a clear message', async ({ page }
 
 test('a full arena round asks one question at a time and shows results', async ({ page }) => {
   await page.goto('/arena/dsa');
-  for (let i = 0; i < 3; i++) {
-    await expect(page.getByText(new RegExp(`Question ${i + 1} of 3`))).toBeVisible();
+  for (let i = 0; i < 4; i++) {
+    await expect(page.getByText(new RegExp(`Question ${i + 1} of 4`))).toBeVisible();
     await page.getByLabel(/Your answer/).fill('I would use a hash map for O(n) time and O(n) space, test empty input and edge cases, and mention the trade off with sorting.');
     await page.getByRole('button', { name: 'Submit answer' }).click();
     await expect(page.getByText('Technical correctness')).toBeVisible();
@@ -30,7 +30,7 @@ test('a full arena round asks one question at a time and shows results', async (
   }
   await expect(page.getByRole('heading', { name: /DSA round — results/ })).toBeVisible();
   await page.goto('/arena');
-  await expect(page.getByText(/3\/3 answered/)).toBeVisible();
+  await expect(page.getByText(/4\/4 answered/)).toBeVisible();
 });
 
 test('STAR stories can be written, saved and persist', async ({ page }) => {

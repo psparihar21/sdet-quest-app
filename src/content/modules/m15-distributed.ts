@@ -44,7 +44,28 @@ export const m15: ModuleBundle = {
           },
           { kind: 'visual', title: 'An event flow', vizId: 'kafka-flow', caption: 'Publish, fan out, eventual consistency and dead letters.' },
           { kind: 'video', title: 'Watch: Kafka in 100 seconds', video: VIDEOS.kafka },
-          { kind: 'check', title: 'Check your understanding', questionIds: ['m15-q1', 'm15-q2', 'm15-q3', 'm15-q4', 'm15-q5'] },
+          {
+            kind: 'learn',
+            title: 'Event-driven architecture and how to test it',
+            body: `In an **event-driven architecture**, services don't call each other directly: a **producer** publishes an event (\`LeaveApproved\`) to a **broker** (Kafka, RabbitMQ, SNS/SQS) and any number of **consumers** react (payroll, notifications, calendar). This decouples teams but moves bugs into the gaps.
+
+~~~text
+Leave service ──LeaveApproved{id, employeeId, days, version}──▶ Kafka topic: leave-events
+                                                               ├─▶ Payroll consumer (deduct balance)
+                                                               ├─▶ Notification consumer (email)
+                                                               └─▶ Calendar consumer
+~~~
+
+**What to test, layer by layer:**
+- **Producer:** the right event is published with the right schema after the transaction commits (outbox pattern) — and not published if it rolls back.
+- **Contract/schema:** event schemas in a registry (Avro/JSON Schema) with compatibility rules; consumer-driven contracts for messages (Pact supports message pacts).
+- **Consumer:** **idempotency** (the same event delivered twice must not deduct twice), **ordering** (an "approved" arriving before "created"), unknown fields tolerated, poison messages go to a **dead-letter queue** instead of blocking the partition.
+- **End-to-end:** publish or trigger, then **poll** for the eventual outcome with a timeout — never sleep. Use correlation ids to trace one flow through all services.
+- **Failure modes:** broker down, consumer lag, retries with backoff, replaying a topic after a bug fix.
+
+Tools: Testcontainers for a real Kafka in integration tests, embedded brokers for fast tests, and observability (consumer lag, DLQ size) as production checks.`,
+          },
+          { kind: 'check', title: 'Check your understanding', questionIds: ['m15-q1', 'm15-q2', 'm15-q3', 'm15-q4', 'm15-q5', 'm15-q6'] },
           { kind: 'practice', title: 'Idempotent event consumer', problemId: 'js-idempotent-consumer' },
           { kind: 'interview', title: 'Interview drill', interviewId: 'iv-m15-async' },
         ],
@@ -52,6 +73,13 @@ export const m15: ModuleBundle = {
     ],
   },
   questions: [
+    {
+      id: 'm15-q6', skill: 'distributed', moduleId: 'm15', type: 'scenario', difficulty: 3,
+      prompt: 'The leave service commits the approval to its database, then publishes LeaveApproved to Kafka. If it crashes between the two steps, payroll never hears about the approval. Which pattern fixes this, and how would you test it?',
+      options: opts('Publish the event first, then commit', 'Transactional outbox: write the event to an outbox table in the same DB transaction and relay it to Kafka; test by killing the service between commit and publish and asserting the event still arrives exactly once downstream', 'Add a retry loop around the Kafka publish', 'Have payroll poll the leave database every minute'),
+      answer: ['b'],
+      explanation: 'The outbox makes "state change + event" atomic. Publishing first can announce approvals that later roll back; retries don\'t help if the process dies; direct DB polling couples services. A fault-injection test proves it.',
+    },
     {
       id: 'm15-q1', skill: 'distributed', moduleId: 'm15', type: 'mcq', difficulty: 2,
       prompt: 'After approving leave via API, the payroll service updates asynchronously. How should the test verify payroll?',

@@ -38,7 +38,22 @@ export const m08: ModuleBundle = {
 **Interview stance:** "It depends — here's on what." Never "Playwright is just better".`,
           },
           { kind: 'video', title: 'Watch: why Playwright feels faster', video: VIDEOS.pwVsSelenium },
-          { kind: 'check', title: 'Check your understanding', questionIds: ['m08-q1', 'm08-q2', 'm08-q3'] },
+          {
+            kind: 'learn',
+            title: 'Cross-browser limitations to know before you choose',
+            body: `Neither tool is a perfect cross-browser story — know the **limitations** of each before promising coverage.
+
+**Playwright**
+- Runs **its own patched builds**: Chromium, Firefox and **WebKit** — not branded Safari. WebKit on Linux/Windows catches most Safari engine issues, but not macOS/iOS-specific Safari behaviour (system fonts, some media, Apple Pay, iOS keyboard quirks).
+- Branded Chrome and Edge are supported via \`channel: 'chrome' | 'msedge'\`; no Internet Explorer; mobile is **emulation** (viewport, touch, user agent), not real devices.
+
+**Selenium**
+- Drives the **real branded browsers** (Chrome, Edge, Firefox, Safari via safaridriver on macOS), plus real mobile through Appium — closest to what users run.
+- Each browser has its own driver with small behavioural differences; Safari allows one session per machine and has no headless mode; cloud grids fill the gaps.
+
+**Practical strategy:** run the full suite on one engine for every PR, a smoke subset on the others nightly, and real Safari/iOS on a device cloud for the journeys your analytics say matter. Cross-browser bugs are mostly CSS/layout and date/input handling — visual and component tests catch many of them more cheaply than E2E.`,
+          },
+          { kind: 'check', title: 'Check your understanding', questionIds: ['m08-q1', 'm08-q2', 'm08-q3', 'm08-q6'] },
         ],
       },
       {
@@ -69,6 +84,13 @@ export const m08: ModuleBundle = {
     ],
   },
   questions: [
+    {
+      id: 'm08-q6', skill: 'playwright', moduleId: 'm08', type: 'mcq', difficulty: 3,
+      prompt: 'Your stakeholders ask: "Do Playwright WebKit tests prove it works on iPhone Safari?" Best answer?',
+      options: opts('Yes, WebKit is Safari', 'They catch most engine issues, but real iOS Safari behaviour needs real devices or a device cloud for key journeys', 'No, WebKit tests are useless', 'Only if run in headed mode'),
+      answer: ['b'],
+      explanation: 'Playwright\'s WebKit is a build of the engine, not branded Safari on iOS; device-specific behaviour needs real-device coverage.',
+    },
     {
       id: 'm08-q1', skill: 'playwright', moduleId: 'm08', type: 'mcq', difficulty: 2,
       prompt: 'A key architectural reason Playwright tests are often faster than Selenium tests?',

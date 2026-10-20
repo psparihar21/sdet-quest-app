@@ -50,7 +50,31 @@ export const m09: ModuleBundle = {
 **REST vs SOAP:** REST is resource-oriented over HTTP verbs, usually JSON, contract by convention or OpenAPI. SOAP is an XML envelope protocol with a strict WSDL contract and built-in standards (WS-Security) — still common in payroll and banking integrations.`,
           },
           { kind: 'video', title: 'Watch: status codes in 5 minutes', video: VIDEOS.httpStatus },
-          { kind: 'check', title: 'Check your understanding', questionIds: ['m09-q1', 'm09-q2', 'm09-q3', 'm09-q4'] },
+          {
+            kind: 'learn',
+            title: 'Error handling: testing the unhappy paths',
+            body: `Most API bugs live in **error handling**, not the happy path. For every endpoint, test that bad input gets the **right status**, a **consistent error body**, and **no side effects**.
+
+| Situation | Expected |
+|---|---|
+| Malformed JSON / wrong type | 400 with field-level messages |
+| Missing / invalid token | 401 (with \`WWW-Authenticate\`) |
+| Valid user, not allowed | 403 — and no data leakage in the message |
+| Unknown id | 404 (or 404 instead of 403 to hide existence) |
+| Business rule broken (end before start, overlapping leave) | 409 or 422 |
+| Too many requests | 429 with \`Retry-After\` |
+| Dependency down | 502/503/504 — never a hanging request |
+
+A consistent error contract (e.g. **RFC 9457 problem+json**):
+
+~~~json
+{ "type": "https://leaveflow.example/errors/overlap", "title": "Leave overlaps an existing request",
+  "status": 409, "detail": "Request 812 already covers 2026-03-02", "instance": "/leaves" }
+~~~
+
+Check also: no stack traces, SQL or internal hostnames in error bodies (security); the record was **not** created after a 4xx (query it back); idempotent retries don't double-create; timeouts and 5xx from dependencies are mapped cleanly (mock them with WireMock or Playwright \`route\`). On the client side, test that the UI shows a useful message and keeps the user's input.`,
+          },
+          { kind: 'check', title: 'Check your understanding', questionIds: ['m09-q1', 'm09-q2', 'm09-q3', 'm09-q4', 'm09-q10'] },
         ],
       },
       {
@@ -132,6 +156,13 @@ given().spec(employeeSpec)                    // base URI, auth, content type, l
     ],
   },
   questions: [
+    {
+      id: 'm09-q10', skill: 'api', moduleId: 'm09', type: 'multi', difficulty: 2,
+      prompt: 'POST /leaves with an end date before the start date. What should your test assert?',
+      options: opts('A 4xx status such as 400 or 422', 'An error body that names the invalid field', 'No leave record was created', 'A 500 with the stack trace for debugging', 'A 200 so the client does not crash'),
+      answer: ['a', 'b', 'c'],
+      explanation: 'Good error handling means the right 4xx, a useful and safe message, and no side effects. Stack traces in responses are an information leak.',
+    },
     {
       id: 'm09-q1', skill: 'api', moduleId: 'm09', type: 'mcq', difficulty: 1,
       prompt: 'POST /leave successfully creates a leave request. The most precise status code is…',

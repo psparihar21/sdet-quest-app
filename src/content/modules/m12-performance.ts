@@ -56,13 +56,39 @@ export const m12: ModuleBundle = {
 **Strategy for a lead:** performance acceptance criteria in stories; a short perf smoke in CI on key APIs (thresholds fail the build); full load/soak before big releases and peak events; production monitoring of the same SLOs.`,
           },
           { kind: 'video', title: 'Watch: JMeter load testing basics', video: VIDEOS.jmeter },
-          { kind: 'check', title: 'Check your understanding', questionIds: ['m12-q4', 'm12-q5'] },
+          {
+            kind: 'learn',
+            title: 'JMeter knowledge checklist and interpreting results',
+            body: `**Basic JMeter knowledge interviewers expect:**
+- **Test plan → Thread Group** (users, ramp-up, duration/loops) → **Samplers** (HTTP Request) → **Config elements** (HTTP Request Defaults, Header/Cookie Manager, CSV Data Set Config for test data) → **Timers** (think time) → **Assertions** (response code, JSON, duration) → **Listeners**.
+- **Correlation:** extract dynamic values (JSON/Regex Extractor) like tokens or ids and reuse them as \`\${token}\`.
+- Run **non-GUI** for real load: \`jmeter -n -t plan.jmx -l results.jtl -e -o report/\`; disable heavy listeners (View Results Tree) during load.
+- Parameterise with \`\${__P(users,10)}\` so CI can pass \`-Jusers=200\`. Distributed mode or cloud runners when one generator can't produce the load.
+
+**Interpreting results — read them in this order:**
+1. **Was the test valid?** Error rate, load generator CPU, did the ramp reach target? A saturated generator makes the app look slow.
+2. **Throughput vs users:** throughput should rise with users; when it **plateaus while latency climbs**, you've found the saturation point.
+3. **Percentiles, not averages:** p95/p99 against the SLO. Average 300 ms with p99 4 s means 1 in 100 users waits 4 s.
+4. **Errors over time:** errors appearing at a specific load level point to pool limits, timeouts or rate limiting.
+5. **Correlate with server metrics** (CPU, memory, GC, DB connections, slow queries) to find *where* the bottleneck is.
+6. **Compare with the baseline** of the previous build — a 20% p95 regression matters even if under SLO.
+
+Report as a decision: "Meets SLO up to 400 req/s; beyond that p95 exceeds 800 ms because the DB connection pool (20) is exhausted — raise the pool or cache the balance lookup."`,
+          },
+          { kind: 'check', title: 'Check your understanding', questionIds: ['m12-q4', 'm12-q5', 'm12-q6'] },
           { kind: 'interview', title: 'Interview drill', interviewId: 'iv-m12-strategy' },
         ],
       },
     ],
   },
   questions: [
+    {
+      id: 'm12-q6', skill: 'performance', moduleId: 'm12', type: 'scenario', difficulty: 3,
+      prompt: 'As users rise from 100 to 300, throughput stays flat at 250 req/s while p95 latency climbs from 300 ms to 2 s. How do you interpret this?',
+      options: opts('The test is fine and the system is scaling', 'The system is saturated around 250 req/s; look for the bottleneck in server metrics (pools, CPU, DB)', 'Average latency is what matters, so ignore p95', 'JMeter is broken; switch tools'),
+      answer: ['b'],
+      explanation: 'Flat throughput with rising latency is the classic saturation signature — extra users just queue. Check the generator was not the bottleneck, then correlate with server-side metrics.',
+    },
     {
       id: 'm12-q1', skill: 'performance', moduleId: 'm12', type: 'mcq', difficulty: 2,
       prompt: 'Thousands of employees swipe in between 9:25 and 9:35 AM. Which test models this?',

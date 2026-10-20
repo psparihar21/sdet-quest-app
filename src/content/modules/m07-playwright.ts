@@ -201,7 +201,33 @@ export default defineConfig({
 - **CI & Docker:** use the official \`mcr.microsoft.com/playwright\` image or \`npx playwright install --with-deps\`; upload the HTML report and traces as artifacts.`,
           },
           { kind: 'visual', title: 'Workers and shards', vizId: 'sharded-runner', caption: 'How 600 tests become a 5-minute run.' },
-          { kind: 'check', title: 'Check your understanding', questionIds: ['m07-q10', 'm07-q11'] },
+          {
+            kind: 'learn',
+            title: 'Parallel execution: workers, modes and isolation',
+            body: `Playwright runs test **files** in parallel across **worker processes** by default; tests inside one file run in order in the same worker.
+
+| Setting | Effect |
+|---|---|
+| \`workers: 4\` / \`--workers=50%\` | How many OS processes run tests at once (CI often 1–4 per machine) |
+| \`fullyParallel: true\` | Tests *within* a file also spread across workers |
+| \`test.describe.configure({ mode: 'serial' })\` | Run a group in order; a failure skips the rest — use rarely |
+| \`--shard=2/4\` | Split the whole suite across machines; combine with workers inside each |
+
+Every test gets a **fresh BrowserContext**, so cookies and storage never leak — but **your data** can. Parallel execution fails when tests share a mutable account or record. Fixes: unique data per test (\`testInfo.workerIndex\` / a uuid in names), **worker-scoped fixtures** for expensive setup (one account per worker), and API-based setup/cleanup.
+
+~~~ts
+export const test = base.extend<{}, { account: Account }>({
+  account: [async ({}, use, workerInfo) => {
+    const acc = await createAccount(\`qa-worker-\${workerInfo.workerIndex}\`);
+    await use(acc);
+    await deleteAccount(acc.id);
+  }, { scope: 'worker' }],
+});
+~~~
+
+Symptoms of an isolation bug: passes with \`--workers=1\`, fails in parallel or in a different order. Re-run with \`--repeat-each\` and \`--workers=1\` to confirm.`,
+          },
+          { kind: 'check', title: 'Check your understanding', questionIds: ['m07-q10', 'm07-q11', 'm07-q12'] },
           {
             kind: 'build',
             title: 'Build a Playwright starter for LeaveFlow',
@@ -219,6 +245,13 @@ export default defineConfig({
     ],
   },
   questions: [
+    {
+      id: 'm07-q12', skill: 'playwright', moduleId: 'm07', type: 'scenario', difficulty: 3,
+      prompt: 'A suite passes with --workers=1 but fails randomly with 4 workers. What is the most likely cause and fix?',
+      options: opts('Playwright is unstable in parallel; keep workers at 1', 'Tests share mutable data (e.g. the same account); give each worker or test its own data via fixtures', 'Browsers need more sleep between steps', 'Contexts leak cookies between tests; add manual logout'),
+      answer: ['b'],
+      explanation: 'Each test already gets a fresh context, so the leak is almost always shared server-side data. Worker-scoped fixtures or unique data per test fix it.',
+    },
     {
       id: 'm07-q1', skill: 'playwright', moduleId: 'm07', type: 'mcq', difficulty: 1,
       prompt: 'What does a Playwright BrowserContext give each test?',

@@ -36,7 +36,28 @@ export const m16: ModuleBundle = {
 
 **Measuring AI's value honestly:** acceptance rate of generated tests after review, defects found, time saved per task, rework caused. "We use ChatGPT for test cases" is not a senior answer; "We measured 60% of generated API tests were usable after review and cut authoring time by ~a third" is — if it's true.`,
           },
-          { kind: 'check', title: 'Check your understanding', questionIds: ['m16-q1', 'm16-q2'] },
+          {
+            kind: 'learn',
+            title: 'Prompt engineering for QA tasks',
+            body: `**Prompt engineering** is writing instructions so a model reliably produces useful, checkable output. For QA work the techniques that matter:
+
+1. **Role and context:** what the system is, who uses it, the risk areas. Paste the real requirement, API schema or page snapshot — the model only knows what you give it.
+2. **Explicit task and constraints:** "List boundary and negative cases only; no happy paths; max 15."
+3. **Output format:** a table or JSON with fixed fields (id, title, steps, expected, priority) so you can review and import it.
+4. **Examples (few-shot):** one or two cases written in *your* style.
+5. **Ask for assumptions and questions:** "List anything ambiguous in the requirement before writing cases" — great for requirement review.
+6. **Iterate and verify:** run the generated code, check each case against the spec, and keep the prompts that work in the repo as templates.
+
+~~~text
+You are a senior QA engineer. Requirement: <paste>.
+Task: write boundary and negative test cases for leave-request validation.
+Rules: one behaviour per case; cite the requirement line each case covers; flag ambiguities separately.
+Output: Markdown table | id | case | input | expected | requirement |
+~~~
+
+Never paste secrets, real customer data or confidential code into tools your company hasn't approved.`,
+          },
+          { kind: 'check', title: 'Check your understanding', questionIds: ['m16-q1', 'm16-q2', 'm16-q7'] },
         ],
       },
       {
@@ -65,6 +86,22 @@ export const m16: ModuleBundle = {
 **Non-determinism:** set temperature low for testability, run each eval case several times, and assert on properties (facts, format, safety) rather than exact strings.`,
           },
           { kind: 'video', title: 'Watch: LLM as a judge', video: VIDEOS.llmJudge },
+          {
+            kind: 'learn',
+            title: 'A test strategy for AI-powered applications',
+            body: `Testing an **AI-powered application** (a chatbot, a "summarise this leave history" feature, an AI search) means testing the **whole application** around the model, not just the model.
+
+| Layer | What to test |
+|---|---|
+| Deterministic code | Prompt templates render correctly, retrieval returns the right documents, tool calls are parsed, permissions enforced — ordinary unit/API tests |
+| Model output quality | An **eval set** of real inputs with expected properties; scored by rules, reference answers or an LLM judge; tracked per model/prompt version |
+| Safety | Prompt injection, jailbreaks, data leakage across users, toxic or biased output, PII in responses |
+| Grounding (RAG) | Answers cite and match the retrieved source; "I don't know" when the source is missing |
+| UX and fallbacks | Timeouts, rate limits, empty or malformed model output, clear labelling of AI content, user can correct or report |
+| Non-functional | Latency (p95 incl. streaming time-to-first-token), cost per request, behaviour when the provider is down |
+
+Run evals in CI on every prompt or model change and gate on a minimum score, keep a regression set of past failures, and monitor quality in production (thumbs down, escalations, sampled human review).`,
+          },
           { kind: 'check', title: 'Check your understanding', questionIds: ['m16-q3', 'm16-q4', 'm16-q5', 'm16-q6'] },
           { kind: 'practice', title: 'A tiny LLM eval harness', problemId: 'js-llm-eval' },
           { kind: 'interview', title: 'Interview drill', interviewId: 'iv-m16-llm' },
@@ -73,6 +110,13 @@ export const m16: ModuleBundle = {
     ],
   },
   questions: [
+    {
+      id: 'm16-q7', skill: 'ai', moduleId: 'm16', type: 'multi', difficulty: 2,
+      prompt: 'Which prompt changes most improve AI-generated test cases?',
+      options: opts('Paste the actual requirement or schema as context', 'Specify a fixed output format such as a table with expected results', 'Ask it to list ambiguities and assumptions', 'Say "be creative" and accept whatever comes back', 'Include production customer data for realism'),
+      answer: ['a', 'b', 'c'],
+      explanation: 'Context, structure and surfaced assumptions make output reviewable. Unreviewed output is risky, and real customer data must never go into prompts.',
+    },
     {
       id: 'm16-q1', skill: 'ai', moduleId: 'm16', type: 'mcq', difficulty: 2,
       prompt: 'An AI assistant generated 40 Playwright tests that all pass on the first run. What should you do first?',

@@ -48,7 +48,21 @@ export const m19: ModuleBundle = {
 **AI-generated code risks:** plausible-but-wrong logic, hallucinated APIs, outdated library usage, security issues (string-built SQL, logged secrets), over-broad changes, tests that mirror the implementation, licence/IP concerns, and **skill atrophy** — interviewers will test what *you* can do without the agent.`,
           },
           { kind: 'video', title: 'Watch: how senior engineers use Cursor', video: VIDEOS.cursor },
-          { kind: 'check', title: 'Check your understanding', questionIds: ['m19-q1', 'm19-q2', 'm19-q3', 'm19-q4'] },
+          {
+            kind: 'learn',
+            title: 'Using Cursor for automation engineering: a daily workflow',
+            body: `**Using Cursor** (or any AI coding agent) well on an automation repo is a workflow, not a prompt:
+
+1. **Rules first:** \`.cursor/rules/*.mdc\` (or AGENTS.md / CLAUDE.md) states the framework conventions — page objects, role locators, no sleeps, fixtures for data, how to run tests.
+2. **Give precise context:** reference files with \`@\` (\`@LeavePage.ts @leave.spec.ts\`), the failing CI log, or the API schema, rather than "fix the tests".
+3. **Plan, then edit:** ask for a plan for multi-file changes (new page object + spec + fixture), review it, then let the agent apply it.
+4. **Make it run the tests:** the agent should run \`npx playwright test leave.spec.ts\` and iterate until green — and you check *why* it is green (did it weaken an assertion?).
+5. **Review the diff like a PR:** locators, waits, data isolation, no secrets, no deleted assertions.
+6. **Small commits** so a bad suggestion is easy to revert.
+
+Good tasks: scaffolding page objects from a snapshot, converting Selenium tests to Playwright, writing API client wrappers from an OpenAPI spec, generating test data builders, explaining an unfamiliar framework. Poor tasks: deciding *what* to test for a risky feature without your test strategy, or "make CI green" without supervision.`,
+          },
+          { kind: 'check', title: 'Check your understanding', questionIds: ['m19-q1', 'm19-q2', 'm19-q3', 'm19-q4', 'm19-q5'] },
           {
             kind: 'build',
             title: 'Write the rules file for your automation repo',
@@ -67,6 +81,13 @@ export const m19: ModuleBundle = {
     ],
   },
   questions: [
+    {
+      id: 'm19-q5', skill: 'cursor', moduleId: 'm19', type: 'mcq', difficulty: 2,
+      prompt: 'Cursor reports "all tests pass" after fixing a failing spec. What do you check first?',
+      options: opts('Nothing — green is green', 'The diff: whether an assertion was removed, weakened or a test was skipped', 'The number of files it touched', 'That the commit message is nice'),
+      answer: ['b'],
+      explanation: 'Agents optimise for the stated goal; making a test pass by weakening it is a classic failure. Review the diff like any PR.',
+    },
     {
       id: 'm19-q1', skill: 'cursor', moduleId: 'm19', type: 'mcq', difficulty: 1,
       prompt: 'Best use of plan mode before a large refactor of the page objects?',

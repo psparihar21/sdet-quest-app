@@ -75,7 +75,22 @@ Under the hood they drive a real browser through **Playwright MCP tools** that r
           },
           { kind: 'video', title: 'Watch: Playwright agents demo', video: VIDEOS.playwrightAgents },
           { kind: 'video', title: 'Watch: what agent skills are', video: VIDEOS.agentSkills },
-          { kind: 'check', title: 'Check your understanding', questionIds: ['m17-q4', 'm17-q5', 'm17-q6'] },
+          {
+            kind: 'learn',
+            title: 'Skills architecture, locator discovery, context management and debugging agents',
+            body: `**Skills architecture:** a skill is a folder — a \`SKILL.md\` with a short name/description (always loaded, so the agent knows when to use it) plus longer instructions, scripts and templates that are **loaded only when the skill is used**. This progressive loading keeps context small. For a QA team, useful skills are "write a Playwright test in our style", "triage a CI failure", "write a bug report" — versioned in the repo and reviewed like code.
+
+**Locator discovery:** agents find elements by reading the **accessibility snapshot** (role + accessible name tree), then propose \`getByRole('button', { name: 'Approve' })\`. They verify the locator live before writing it. Your job: require role/label/test-id locators in the instructions, reject generated CSS chains and nth-child, and fix the app's accessibility when the agent can't find a good name — that helps real users too.
+
+**Context management:** a model's context window is limited and everything in it costs tokens and attention. Keep it focused: concise rules files, skills loaded on demand, snapshots instead of screenshots/HTML dumps, summaries of long logs, a fresh session per task, and sub-agents that return only their conclusions. Symptoms of bad context: the agent forgets earlier rules, repeats work or edits the wrong file.
+
+**Debugging agents** — when an agent goes wrong, inspect it like any system:
+1. **Read the transcript/trace:** which tools did it call, with what inputs, and what came back?
+2. Classify: wrong instruction, missing context, bad tool result, or model mistake.
+3. Fix the cause: sharpen the skill/rules, give the missing context, improve the tool description or output, add a hook (e.g. run tests after edits) or a human approval step.
+4. Re-run the same task as a regression case; keep a small eval set of agent tasks.`,
+          },
+          { kind: 'check', title: 'Check your understanding', questionIds: ['m17-q4', 'm17-q5', 'm17-q6', 'm17-q7'] },
           {
             kind: 'build',
             title: 'Run the planner → generator → healer loop',
@@ -94,6 +109,13 @@ Under the hood they drive a real browser through **Playwright MCP tools** that r
     ],
   },
   questions: [
+    {
+      id: 'm17-q7', skill: 'agents', moduleId: 'm17', type: 'mcq', difficulty: 3,
+      prompt: 'Your test-writing agent keeps generating CSS nth-child locators and ignoring your conventions late in long sessions. Best first fix?',
+      options: opts('Switch to a bigger model', 'Put the locator rules in a skill/rules file, start fresh sessions per task and check the transcript for what context it actually had', 'Accept the locators and fix them later', 'Give it more tools'),
+      answer: ['b'],
+      explanation: 'This is a context-management problem: rules lost in a long context. Focused, on-demand instructions plus transcript inspection fix the cause.',
+    },
     {
       id: 'm17-q1', skill: 'agents', moduleId: 'm17', type: 'mcq', difficulty: 1,
       prompt: 'What distinguishes an AI agent from a chatbot?',

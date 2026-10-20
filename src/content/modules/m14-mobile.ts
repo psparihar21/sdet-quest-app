@@ -36,13 +36,40 @@ export const m14: ModuleBundle = {
 **Mobile CI:** build the APK/IPA, upload to the farm via API, run tests in parallel, collect videos and logs, gate releases.`,
           },
           { kind: 'video', title: 'Watch: how Appium works', video: VIDEOS.appium },
-          { kind: 'check', title: 'Check your understanding', questionIds: ['m14-q1', 'm14-q2', 'm14-q3', 'm14-q4'] },
+          {
+            kind: 'learn',
+            title: 'Native apps vs hybrid apps in practice',
+            body: `**Native apps** render real platform widgets. Automation sees an accessibility tree of native elements — locate by accessibility id, resource-id or label. Risks to test: OS version behaviour, permissions dialogs, background/foreground, deep links, upgrades preserving data.
+
+**Hybrid apps** wrap web content in a native shell (WebView). Part of the screen is native (login, tab bar), part is HTML. Appium must **switch context** to reach the web part:
+
+~~~java
+Set<String> ctx = driver.getContextHandles();        // [NATIVE_APP, WEBVIEW_com.leaveflow]
+driver.context("WEBVIEW_com.leaveflow");             // now CSS/XPath on the HTML
+driver.findElement(By.cssSelector("button[data-testid=approve]")).click();
+driver.context("NATIVE_APP");                        // back to native for system dialogs
+~~~
+
+Requirements: WebView debugging enabled in the test build (Android \`setWebContentsDebuggingEnabled(true)\`; iOS inspectable WebViews), and a matching Chromedriver for Android WebViews. Hybrid-specific risks: native ↔ web bridge calls, offline caching of web content, keyboard covering web inputs, mixed navigation (hardware back button inside the WebView).
+
+**React Native / Flutter apps** are neither: React Native renders native views (test as native, with testID → accessibility id); Flutter draws its own widgets (use the Appium Flutter driver or Flutter's integration tests).
+
+Test strategy for both: unit and component tests in the app repo (Espresso/XCUITest for native screens), a thin cross-platform Appium layer for key journeys, and real devices for the riskiest models.`,
+          },
+          { kind: 'check', title: 'Check your understanding', questionIds: ['m14-q1', 'm14-q2', 'm14-q3', 'm14-q4', 'm14-q5'] },
           { kind: 'interview', title: 'Interview drill', interviewId: 'iv-m14-mobile' },
         ],
       },
     ],
   },
   questions: [
+    {
+      id: 'm14-q5', skill: 'mobile', moduleId: 'm14', type: 'mcq', difficulty: 2,
+      prompt: 'The LeaveFlow mobile app is rebuilt in React Native. What is the most reliable way for Appium tests to locate its elements?',
+      options: opts('Switch to a WEBVIEW context and use CSS selectors', 'Ask developers to set testID / accessibilityLabel on key components and locate by accessibility id', 'Use absolute XPath on the native tree', 'Tap by screen coordinates'),
+      answer: ['b'],
+      explanation: 'React Native renders native views, not a WebView. testID/accessibilityLabel surface as accessibility ids on both platforms — stable, fast and good for accessibility. (Flutter is different: it draws its own widgets and needs the Flutter driver.)',
+    },
     {
       id: 'm14-q1', skill: 'mobile', moduleId: 'm14', type: 'mcq', difficulty: 2,
       prompt: 'In a hybrid app, Appium can\'t find an element inside a screen rendered in a WebView. What do you do?',

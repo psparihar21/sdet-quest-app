@@ -38,7 +38,32 @@ config/           env.properties per environment + -Denv / env vars for secrets
 **Test data:** create through APIs (fast, reliable), not the UI; unique IDs per test; track what you create and clean it up. Data-driven tests use TestNG @DataProvider (parallel = true when data is independent).`,
           },
           { kind: 'video', title: 'Watch: building a POM framework (long, watch selectively)', video: VIDEOS.pomFramework },
-          { kind: 'check', title: 'Check your understanding', questionIds: ['m06-q1', 'm06-q2', 'm06-q3'] },
+          {
+            kind: 'learn',
+            title: 'Database validation layer',
+            body: `UI or API success messages can lie — the real proof is often the stored state. **Database validation** checks what the system persisted, as a separate, read-only layer of the framework.
+
+~~~java
+public final class LeaveDb {
+  private final DataSource ds;   // test DB credentials from config/secrets, read-only user
+  public Optional<String> statusOf(long requestId) {
+    String sql = "SELECT status FROM leave_request WHERE id = ?";   // parameterised, never string-concatenated
+    try (Connection c = ds.getConnection(); PreparedStatement ps = c.prepareStatement(sql)) {
+      ps.setLong(1, requestId);
+      try (ResultSet rs = ps.executeQuery()) { return rs.next() ? Optional.of(rs.getString(1)) : Optional.empty(); }
+    } catch (SQLException e) { throw new IllegalStateException("status lookup failed", e); }
+  }
+}
+// test
+leavePage.approve(requestId);
+await().atMost(Duration.ofSeconds(10)).until(() -> db.statusOf(requestId), hasValue("APPROVED"));  // async writes
+~~~
+
+**When it earns its place:** money and balances, audit trails, soft deletes, data that never shows in the UI, migrations, event-driven writes. **When it doesn't:** if the API exposes the same state, assert through the API — DB checks couple tests to the schema.
+
+Good practice: a read-only account; parameterised queries; poll (Awaitility) for eventually-consistent writes; seed and clean data through APIs or SQL fixtures, not the UI; keep SQL in one DAO layer so schema changes touch one place.`,
+          },
+          { kind: 'check', title: 'Check your understanding', questionIds: ['m06-q1', 'm06-q2', 'm06-q3', 'm06-q7'] },
         ],
       },
       {
@@ -83,6 +108,13 @@ config/           env.properties per environment + -Denv / env vars for secrets
     ],
   },
   questions: [
+    {
+      id: 'm06-q7', skill: 'framework', moduleId: 'm06', type: 'mcq', difficulty: 2,
+      prompt: 'Approving a leave triggers an asynchronous write to the database. How should the test validate the stored status?',
+      options: opts('Thread.sleep(5000) then query once', 'Poll the DB through a DAO with a timeout (e.g. Awaitility) until the status is APPROVED', 'Trust the green toast in the UI', 'Build the SQL by concatenating the request id into the string'),
+      answer: ['b'],
+      explanation: 'Polling with a deadline handles eventual consistency without fixed sleeps; parameterised queries in one DAO keep it safe and maintainable.',
+    },
     {
       id: 'm06-q1', skill: 'framework', moduleId: 'm06', type: 'mcq', difficulty: 2,
       prompt: 'Where should assertions live in a POM framework?',

@@ -139,13 +139,50 @@ Clicking with JavaScript bypasses the real user path (overlays, disabled state) 
 **Capabilities & Grid:** ChromeOptions (headless, window size, download prefs) are capabilities. **Selenium Grid 4** (router, distributor, nodes — usually Docker) runs RemoteWebDriver sessions in parallel across browsers.`,
           },
           { kind: 'visual', title: 'Selenium Grid', vizId: 'selenium-grid', caption: 'How parallel sessions are routed to browser nodes.' },
-          { kind: 'check', title: 'Check your understanding', questionIds: ['m05-q7', 'm05-q8', 'm05-q9'] },
+          {
+            kind: 'learn',
+            title: 'Relative XPath, web components and parallel execution',
+            body: `**Absolute vs relative XPath:** absolute XPath starts at the root (\`/html/body/div[2]/div/form/button\`) and breaks with any layout change. **Relative XPath** starts anywhere with \`//\` and anchors on something meaningful:
+
+~~~text
+//button[normalize-space()='Approve']
+//tr[td[normalize-space()='Asha']]//button[@aria-label='Approve']     (row by content, then its button)
+//label[normalize-space()='Start date']/following-sibling::input
+//input[contains(@id,'start') and @type='date']
+~~~
+
+Useful axes: \`ancestor::\`, \`following-sibling::\`, \`preceding-sibling::\`, \`parent::\`. Prefer CSS for speed and readability; reach for relative XPath when you need **text** or **walking up the tree** (CSS can't select a parent by its child — though \`:has()\` now covers some cases).
+
+**Web components and shadow DOM:** custom elements (\`<leave-card>\`) often render inside a **shadow root**, which normal \`findElement\` cannot see into.
+
+~~~java
+SearchContext root = driver.findElement(By.cssSelector("leave-card")).getShadowRoot();  // Selenium 4
+root.findElement(By.cssSelector("button.approve")).click();   // CSS only — XPath doesn't work inside shadow roots
+~~~
+
+Closed shadow roots can't be reached at all — ask developers for test hooks. (Playwright pierces open shadow DOM automatically.)
+
+**Parallel execution in Selenium:**
+- **TestNG** \`parallel="methods|classes|tests"\` with \`thread-count\`, or JUnit 5 \`junit.jupiter.execution.parallel.enabled=true\`.
+- One WebDriver **per thread** — \`ThreadLocal<WebDriver>\`; never a static shared driver.
+- **Selenium Grid 4** (hub/router + nodes, or Docker/Kubernetes with dynamic nodes) distributes sessions across browsers and machines.
+- Independent tests: unique data per test, no ordering, no shared accounts mutated by two threads.
+- Size thread count to grid capacity; more threads than browser slots just queue and time out.`,
+          },
+          { kind: 'check', title: 'Check your understanding', questionIds: ['m05-q7', 'm05-q8', 'm05-q9', 'm05-q10'] },
           { kind: 'practice', title: 'Code reading: approve a pending leave row', problemId: 'java-approve-row' },
         ],
       },
     ],
   },
   questions: [
+    {
+      id: 'm05-q10', skill: 'selenium', moduleId: 'm05', type: 'scenario', difficulty: 3,
+      prompt: 'TestNG runs with thread-count="16" against a Selenium Grid that has 8 Chrome slots. Tests start timing out at session creation. What is happening, and what is the fix?',
+      options: opts('Selenium cannot run more than 8 threads; switch to Playwright', 'Half the sessions wait in the Grid queue until they time out; size thread-count to grid capacity (or scale nodes) and set a sensible session-request timeout', 'The tests need longer implicit waits', 'ThreadLocal stops working above 8 threads'),
+      answer: ['b'],
+      explanation: 'More threads than browser slots just queue. Match thread-count to available slots, or add nodes (e.g. dynamic Docker/Kubernetes nodes), and tune the new-session queue timeout so failures are fast and clear.',
+    },
     {
       id: 'm05-q1', skill: 'selenium', moduleId: 'm05', type: 'mcq', difficulty: 1,
       prompt: 'Most robust locator for an "Apply leave" button?',

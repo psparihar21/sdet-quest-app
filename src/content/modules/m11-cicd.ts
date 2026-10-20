@@ -37,7 +37,46 @@ export const m11: ModuleBundle = {
 | Nightly full regression, cross-browser | Scheduled | hours OK |`,
           },
           { kind: 'visual', title: 'A CI/CD testing pipeline', vizId: 'ci-pipeline', caption: 'Step through stages, gates and reports.' },
-          { kind: 'check', title: 'Check your understanding', questionIds: ['m11-q1', 'm11-q2'] },
+          {
+            kind: 'learn',
+            title: 'GitHub vs GitLab, branching strategies and environment management',
+            body: `**GitHub/GitLab — same ideas, different words:**
+
+| Concept | GitHub | GitLab |
+|---|---|---|
+| Code review | Pull request | Merge request |
+| Pipeline file | \`.github/workflows/*.yml\` | \`.gitlab-ci.yml\` |
+| Execution | Jobs on runners, \`needs\` | Stages + jobs on runners, \`needs\` for DAG |
+| Parallel split | \`strategy.matrix\` | \`parallel: 4\` / \`parallel:matrix\` |
+| Reports | Artifacts + checks | \`artifacts:reports:junit\` shown in the MR |
+| Gates | Required status checks, rulesets | Protected branches, "pipelines must succeed" |
+| Environments | \`environment:\` with protection rules | \`environment:\` with review apps and deployment approvals |
+
+~~~yaml
+# .gitlab-ci.yml
+stages: [test, e2e]
+api:
+  stage: test
+  script: [mvn -B verify -Dgroups=api]
+  artifacts: { when: always, reports: { junit: target/failsafe-reports/*.xml } }
+e2e:
+  stage: e2e
+  # pin the image tag to the exact @playwright/test version in package-lock.json,
+  # otherwise the bundled browsers won't match and tests fail to launch
+  image: mcr.microsoft.com/playwright:v1.56.0-noble
+  parallel: 4
+  script: [npm ci, npx playwright test --shard=$CI_NODE_INDEX/$CI_NODE_TOTAL]
+~~~
+
+**Branching strategies** and what each means for testing:
+- **Trunk-based** — tiny branches, merge daily, feature flags. Testing must be fast and trustworthy on every PR; test both flag states.
+- **GitHub flow** — feature branch → PR → main → deploy. Same as trunk-based with slightly longer branches.
+- **GitFlow** — develop, release, hotfix branches. Regression runs on the release branch; hotfixes need a quick targeted suite and must be merged back.
+- **Release branches** (for mobile/on-prem) — stabilise and test a cut while main moves on; cherry-picks need re-testing.
+
+**Environment management:** define environments (dev, QA, staging, prod-like, ephemeral **per-PR preview environments**) as code (Docker Compose, Helm values, Terraform). Tests read the target from config (\`BASE_URL\`, \`ENV=staging\`), never hard-coded. Keep test data seeded per environment, secrets per environment in the secret store, version/health checks before a run ("is staging on the build I think?"), and a booking/ownership rule for shared environments so two teams don't deploy over each other's test run.`,
+          },
+          { kind: 'check', title: 'Check your understanding', questionIds: ['m11-q1', 'm11-q2', 'm11-q7'] },
         ],
       },
       {
@@ -115,6 +154,13 @@ Concepts: **workflow → jobs → steps**, runners, **matrix** for parallel jobs
   },
   questions: [
     {
+      id: 'm11-q7', skill: 'cicd', moduleId: 'm11', type: 'mcq', difficulty: 2,
+      prompt: 'Two teams keep breaking each other\'s test runs on one shared staging environment. Which change addresses the root cause?',
+      options: opts('Add retries to all tests', 'Ephemeral per-PR environments created from the same Helm/Compose definitions, plus a health/version check before each run', 'Run tests only at night', 'Hard-code the staging URL in every test'),
+      answer: ['b'],
+      explanation: 'Environment management as code lets each change get an isolated, identical environment; the pre-run check catches "wrong build" surprises.',
+    },
+    {
       id: 'm11-q1', skill: 'cicd', moduleId: 'm11', type: 'mcq', difficulty: 2,
       prompt: 'Trunk-based development depends most on…',
       options: opts('Long-lived release branches', 'Fast, reliable automated checks on every PR plus feature flags', 'Manual regression before every merge', 'Weekly merges'),
@@ -159,6 +205,54 @@ Concepts: **workflow → jobs → steps**, runners, **matrix** for parallel jobs
   ],
   problems: [],
   interviews: [
+    {
+      id: 'iv-m11-slow-pipeline', modes: ['cicd', 'full-sdet3', 'qa-lead'], skill: 'cicd', level: 'L4', kind: 'scenario',
+      prompt: 'PR checks take 45 minutes and developers are batching changes to avoid them. How do you bring feedback under 15 minutes without losing confidence?',
+      rubric: [
+        { id: 'measure', point: 'Measures first: where the time goes per stage and per test', any: ['measure', 'profile', 'data', 'slowest', 'breakdown', 'duration'] },
+        { id: 'parallel', point: 'Parallelism and sharding across machines', any: ['parallel', 'shard', 'matrix', 'workers'] },
+        { id: 'cache', point: 'Caching dependencies, builds and browser images', any: ['cache', 'caching', 'docker layer', 'prebuilt image'] },
+        { id: 'pyramid', point: 'Pushes coverage down: API/component tests instead of slow E2E', any: ['pyramid', 'api test', 'component test', 'push down', 'lower level', 'unit'] },
+        { id: 'tia', point: 'Runs the right subset: test impact analysis, tags, smoke on PR and full regression later', any: ['impact analysis', 'affected', 'changed files', 'smoke', 'subset', 'tag', 'nightly'] },
+        { id: 'flaky', point: 'Removes retries/waits hiding slowness; quarantines flaky tests', any: ['flaky', 'quarantine', 'retry', 'sleep', 'wait'] },
+      ],
+      redFlags: [{ any: ['delete the e2e tests', 'skip tests', 'make them optional'], note: 'Cutting coverage without replacing it trades speed for escaped defects.' }],
+      structure: 'Measure → quick wins (parallel, cache) → structural fixes (pyramid, selection) → guardrails and a time budget.',
+      modelAnswer: '"First I measure: stage timings from the CI API and the slowest 20 tests. Quick wins usually come from caching npm/Maven and browser images, running independent jobs in parallel, and sharding E2E across four machines with merged reports. Then structural fixes: replace E2E tests that only check validation or API rules with API or component tests, and run only a tagged smoke set plus tests affected by the changed files on each PR, with the full regression on merge and nightly. I remove fixed sleeps and blanket retries that silently add minutes, and quarantine flaky tests with owners. Finally I set a time budget per stage and alert when the PR pipeline exceeds 15 minutes, so it doesn\'t creep back."',
+      followUp: 'Test impact analysis misses a regression once. How do you keep trust in the selective approach?',
+      revision: ['m11', 'm10'],
+    },
+    {
+      id: 'iv-m11-branching', modes: ['cicd', 'full-sdet3'], skill: 'cicd', level: 'L4', kind: 'technical',
+      prompt: 'Your team is moving from GitFlow to trunk-based development. What changes for testing and the pipeline?',
+      rubric: [
+        { id: 'fast', point: 'Every merge to main must be releasable: fast, reliable PR checks are mandatory', any: ['every merge', 'releasable', 'fast', 'reliable', 'required check'] },
+        { id: 'flags', point: 'Feature flags for unfinished work; test both flag states and flag clean-up', any: ['feature flag', 'flag', 'toggle'] },
+        { id: 'regression', point: 'Regression moves from a release-branch phase to continuous runs on main', any: ['continuous', 'on main', 'release branch', 'regression', 'nightly'] },
+        { id: 'small', point: 'Small, frequent changes; tests written in the same PR', any: ['small', 'frequent', 'same pr', 'same pull request', 'daily'] },
+        { id: 'safety', point: 'Production safety nets: canary, monitoring, quick rollback', any: ['canary', 'rollback', 'monitor', 'observability', 'dark launch'] },
+      ],
+      structure: 'What trunk-based demands → pipeline changes → flags → release safety → team habits.',
+      modelAnswer: '"With GitFlow we could stabilise on a release branch; with trunk-based, main must be releasable after every merge, so PR checks become the real quality gate — fast, required and not flaky. Unfinished features hide behind feature flags, so we test both flag states for risky flags and track flag removal as debt. Regression no longer happens in a release phase: it runs continuously on main and nightly. Developers merge small changes at least daily with tests in the same PR, and I\'d add production safety nets — canary releases, monitoring on key journeys and one-click rollback — because some issues will only show up in production."',
+      followUp: 'How do you test a feature flag that has 4 variants across 3 services?',
+      revision: ['m11', 'm20'],
+    },
+    {
+      id: 'iv-m11-environments', modes: ['cicd', 'full-sdet3', 'system-design'], skill: 'devops', level: 'L4', kind: 'design',
+      prompt: 'Tests pass on QA but fail on staging, and nobody is sure which build each environment runs. How would you set up environment management for testing?',
+      rubric: [
+        { id: 'iac', point: 'Environments defined as code (Docker Compose, Helm, Terraform) so they are reproducible', any: ['as code', 'helm', 'terraform', 'compose', 'infrastructure as code', 'iac'] },
+        { id: 'version', point: 'Version/health check before tests run; build info exposed by the app', any: ['version', 'health check', 'build number', 'commit sha', 'endpoint'] },
+        { id: 'config', point: 'Configuration and secrets per environment, nothing hard-coded in tests', any: ['config', 'environment variable', 'secret', 'base url', 'hard coded'] },
+        { id: 'data', point: 'Test data seeded per environment, independent of what is already there', any: ['seed', 'test data', 'fixture', 'reset'] },
+        { id: 'ephemeral', point: 'Ephemeral per-PR environments; ownership/booking of shared ones', any: ['ephemeral', 'per pr', 'preview', 'review app', 'owner', 'booking'] },
+        { id: 'drift', point: 'Detects drift between environments (versions, config, feature flags)', any: ['drift', 'diff', 'parity', 'feature flag', 'mismatch'] },
+      ],
+      structure: 'Reproducible environments → know what is deployed → config/secrets/data → isolation → drift detection.',
+      modelAnswer: '"I\'d make environments reproducible by defining them as code — Helm values or Compose files per environment — so QA and staging differ only in declared values. Every service exposes a version endpoint with the commit SHA, and the pipeline checks it before running tests, failing fast with \'staging is on build 412, expected 415\'. Tests read the base URL and credentials from environment config and the secret store, never hard-coded, and seed their own data. For PRs we spin up ephemeral preview environments; shared ones get an owner and a booking rule. Finally a nightly job diffs versions, config and feature flags between QA and staging, because most \'passes on QA, fails on staging\' bugs are drift."',
+      followUp: 'Ephemeral environments are too expensive for every PR. What compromise do you propose?',
+      revision: ['m11', 'm22'],
+    },
     {
       id: 'iv-m11-pipeline', modes: ['cicd', 'full-sdet3', 'system-design'], skill: 'cicd', level: 'L4', kind: 'design',
       prompt: 'Design a CI/CD pipeline with testing for a microservices product deploying several times a day. Where do which tests run, and what blocks a release?',

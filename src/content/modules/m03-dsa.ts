@@ -577,6 +577,53 @@ function isPalindrome(s: string): boolean {
   ],
   interviews: [
     {
+      id: 'iv-m03-flaky-window', modes: ['dsa', 'full-sdet3'], skill: 'dsa', level: 'L3', kind: 'technical',
+      prompt: 'You receive a time-ordered stream of CI results (timestamp, testId, passed). Flag every test that fails 3 or more times within any 10-minute window. Explain your approach, complexity and how you would test it.',
+      rubric: [
+        { id: 'window', point: 'Sliding window over time, evicting results older than 10 minutes', any: ['sliding window', 'window', 'evict', 'older than', 'expire'] },
+        { id: 'map', point: 'Per-test state in a hash map (test id → queue of failure timestamps)', any: ['hash map', 'hashmap', 'map', 'dictionary', 'per test'] },
+        { id: 'queue', point: 'Queue/deque of failure times so eviction is O(1) amortised', any: ['queue', 'deque', 'linked list', 'pop from the front', 'poll'] },
+        { id: 'complexity', point: 'O(n) time overall (each timestamp added and removed once); space bounded by failures in the window', any: ['o(n)', 'linear', 'amortized', 'amortised', 'each element once'] },
+        { id: 'edge', point: 'Edge cases: exactly 10 minutes apart, out-of-order events, passes ignored, report a test once', any: ['boundary', 'exactly', 'out of order', 'late', 'duplicate', 'once', 'edge case'] },
+      ],
+      redFlags: [{ any: ['rescan all results', 'nested loop', 'for every result loop over all'], note: 'Rescanning history on every event is O(n²) on a busy CI stream.' }],
+      structure: 'Clarify window rules → data structure → walk through an example → complexity → edge cases and tests.',
+      modelAnswer: '"First I\'d clarify: is the window inclusive at exactly 10 minutes, can events arrive late, and should a test be reported once or every time it crosses the threshold? Then I keep a HashMap from testId to a deque of failure timestamps. For each failed result I push its timestamp, pop from the front while the oldest is more than 10 minutes older than the newest, and if the deque size reaches 3 I flag the test (once, using a Set of flagged ids). Passes are ignored. Each timestamp enters and leaves its deque once, so it\'s O(n) time; space is bounded by failures inside the window. Tests: failures exactly 10 minutes apart, 3 failures spread over 11 minutes (no flag), interleaved tests, passes between failures, and a large generated stream to check it stays linear. If events can be out of order I\'d buffer by a small watermark or sort per test first."',
+      followUp: 'The stream is now 50,000 events per second across many CI runners. What changes in your design?',
+      revision: ['m03', 'm10'],
+    },
+    {
+      id: 'iv-m03-topk-slowest', modes: ['dsa', 'full-sdet3'], skill: 'dsa', level: 'L3', kind: 'technical',
+      prompt: 'Given 5 million test-duration records, return the 10 slowest tests. Compare approaches and their complexity.',
+      rubric: [
+        { id: 'sort', point: 'Baseline: sort everything, O(n log n)', any: ['sort', 'n log n'] },
+        { id: 'heap', point: 'Min-heap of size k: keep the k largest, O(n log k)', any: ['heap', 'priority queue', 'min heap', 'n log k'] },
+        { id: 'space', point: 'Heap uses O(k) memory and works on a stream', any: ['o(k)', 'constant memory', 'stream', 'memory'] },
+        { id: 'dupes', point: 'Clarifies duplicates: per test (aggregate by id first) vs per run; ties', any: ['aggregate', 'group by', 'per test', 'duplicate', 'tie', 'average', 'max'] },
+        { id: 'alt', point: 'Mentions quickselect or doing it in SQL/the reporting tool', any: ['quickselect', 'quick select', 'order by', 'limit', 'database', 'sql'] },
+      ],
+      redFlags: [{ any: ['max heap of all', 'compare every pair'], note: 'Building a heap of all n items or comparing pairs misses the O(n log k) point.' }],
+      structure: 'Clarify → simple approach → better approach → complexity comparison → edge cases.',
+      modelAnswer: '"Clarify first: 10 slowest runs, or 10 slowest tests by average or max duration? If per test, I aggregate by testId in a HashMap first. The simple answer is sort descending and take 10 — O(n log n) time and O(n) memory. Better: keep a min-heap of size 10; for each record, push it, and if the heap grows past 10 pop the smallest. That\'s O(n log k) — effectively linear for k = 10 — with O(k) memory, and it works on a stream that doesn\'t fit in memory. Quickselect is O(n) average but needs everything in memory. In practice, if the data is already in a database, SELECT ... ORDER BY duration DESC LIMIT 10 with an index is the right answer. Tests: fewer than 10 records, ties, equal durations, negative or null durations as invalid data."',
+      followUp: 'Now return the 10 tests whose duration regressed the most compared with last week. What changes?',
+      revision: ['m03', 'm04'],
+    },
+    {
+      id: 'iv-m03-setup-order', modes: ['dsa', 'full-sdet3'], skill: 'dsa', level: 'L4', kind: 'technical',
+      prompt: 'Test fixtures declare dependencies (e.g. "approvedLeave" needs "employee" and "manager"; "manager" needs "department"). Write the logic that decides setup order, and explain what happens with a circular dependency.',
+      rubric: [
+        { id: 'graph', point: 'Models fixtures as a directed graph (adjacency list)', any: ['graph', 'directed', 'adjacency', 'edge', 'node'] },
+        { id: 'topo', point: 'Topological sort (Kahn\'s algorithm with in-degrees, or DFS post-order)', any: ['topological', 'kahn', 'in degree', 'indegree', 'dfs', 'depth first'] },
+        { id: 'cycle', point: 'Detects cycles: nodes left over (Kahn) or a back edge (DFS) → fail with the cycle path', any: ['cycle', 'circular', 'back edge', 'left over', 'remaining'] },
+        { id: 'complexity', point: 'O(V + E) time', any: ['o(v + e)', 'v + e', 'v+e', 'linear', 'vertices and edges'] },
+        { id: 'teardown', point: 'Teardown in reverse order; independent fixtures can be set up in parallel', any: ['reverse', 'teardown', 'tear down', 'parallel', 'same level'] },
+      ],
+      structure: 'Model → algorithm → cycle handling → complexity → practical extensions (teardown, parallel levels).',
+      modelAnswer: '"It\'s a dependency graph: each fixture is a node, an edge goes from a dependency to the fixture that needs it. I\'d use Kahn\'s algorithm: compute in-degrees, start a queue with fixtures that have none (department), pop one, add it to the order, decrement its dependants and enqueue any that reach zero. That\'s O(V + E). If the output has fewer nodes than the graph, the remaining nodes are in a cycle — I fail fast with a clear message naming the cycle, e.g. manager → department → manager, rather than hanging or partially setting up. Teardown runs in the reverse order, and fixtures at the same level can be created in parallel. Tests: no dependencies, a chain, a diamond (shared dependency created once), a self-dependency and a longer cycle."',
+      followUp: 'How does Playwright\'s fixture system or TestNG\'s dependsOnMethods solve the same problem, and what goes wrong with dependsOnMethods?',
+      revision: ['m03', 'm10'],
+    },
+    {
       id: 'iv-m03-approach', modes: ['dsa', 'full-sdet3'], skill: 'dsa', level: 'L3', kind: 'technical',
       prompt: 'Walk me through how you would find all duplicate employee emails in a list of 2 million records. Talk about approach, complexity, and how you would test your solution.',
       rubric: [

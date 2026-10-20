@@ -50,7 +50,31 @@ Clients can also offer capabilities to servers (e.g. sampling — letting a serv
           { kind: 'visual', title: 'Host, clients and servers', vizId: 'mcp-flow', caption: 'Discovery, a tool call, and a resource read.' },
           { kind: 'video', title: 'Watch: what is MCP?', video: VIDEOS.mcp },
           { kind: 'video', title: 'Watch: MCP vs API', video: VIDEOS.mcpVsApi },
-          { kind: 'check', title: 'Check your understanding', questionIds: ['m18-q1', 'm18-q2', 'm18-q3', 'm18-q4', 'm18-q5'] },
+          {
+            kind: 'learn',
+            title: 'MCP architecture and Playwright browser automation in agent workflows',
+            body: `**MCP architecture end to end:**
+
+~~~text
+ Host (IDE / agent app)  ── owns model, UI, user approvals
+   ├─ MCP client ⇄ (stdio) ⇄ Playwright MCP server ⇄ browser
+   ├─ MCP client ⇄ (HTTP + OAuth) ⇄ Test-management server ⇄ TMS API
+   └─ MCP client ⇄ (stdio) ⇄ Git/GitHub server
+ 1. initialize → capabilities   2. tools/list, resources/list   3. model picks a tool
+ 4. host asks user (side effects)  5. tools/call → result goes back into the model's context
+~~~
+
+Each server is isolated: the host decides which tools a model may see and must approve risky calls; servers never see each other's data unless the host passes it on.
+
+**Playwright browser automation in agent workflows** — typical flows:
+- **Exploratory:** "Open staging, try to submit leave with overlapping dates, report what happens" — the agent calls \`browser_navigate\`, \`browser_snapshot\`, \`browser_click\`, \`browser_type\` and summarises.
+- **Test authoring:** explore the flow live, then write a Playwright spec with role locators and run it to prove it passes (Playwright's planner/generator agents do this).
+- **Failure triage:** given a failing CI test, reproduce it in the browser, compare the snapshot with the expected state, propose a fix or file a bug with steps.
+- **Verification step in a coding workflow:** after the agent changes UI code, it opens the page and checks the change actually works.
+
+Guardrails: point it at test environments only, use test accounts, keep traces/screenshots of the session as evidence, and turn useful exploratory sessions into deterministic tests — an agent clicking around is not a regression suite.`,
+          },
+          { kind: 'check', title: 'Check your understanding', questionIds: ['m18-q1', 'm18-q2', 'm18-q3', 'm18-q4', 'm18-q5', 'm18-q6'] },
           {
             kind: 'build',
             title: 'Design a QA MCP server',
@@ -69,6 +93,13 @@ Clients can also offer capabilities to servers (e.g. sampling — letting a serv
     ],
   },
   questions: [
+    {
+      id: 'm18-q6', skill: 'mcp', moduleId: 'm18', type: 'mcq', difficulty: 2,
+      prompt: 'In an agent workflow, who decides whether a Playwright MCP "browser_click" on a Delete button is allowed to run?',
+      options: opts('The Playwright MCP server alone', 'The host application, which mediates tool calls and can require user approval', 'The browser', 'Nobody — MCP tools always run'),
+      answer: ['b'],
+      explanation: 'The host owns the model and user consent; it lists tools, routes calls through clients and can require approval for side effects.',
+    },
     {
       id: 'm18-q1', skill: 'mcp', moduleId: 'm18', type: 'mcq', difficulty: 1,
       prompt: 'In MCP, what is the server?',

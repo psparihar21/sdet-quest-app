@@ -28,7 +28,29 @@ export const m24: ModuleBundle = {
 
 **Telling the story (2 minutes):** problem → architecture → three decisions with trade-offs (e.g. API-first coverage, Playwright for new UI with Selenium kept for admin, contract tests for the payroll event) → numbers (suite time, flaky rate, coverage of high risks) → what you'd do next.`,
           },
-          { kind: 'check', title: 'Check your understanding', questionIds: ['m24-q1', 'm24-q2'] },
+          {
+            kind: 'learn',
+            title: 'Running the capstone against multiple environments',
+            body: `A portfolio framework should prove it can run against **multiple environments** without code changes — interviewers ask this directly.
+
+~~~ts
+// config/env.ts
+const ENVS = {
+  local:   { baseURL: 'http://localhost:5173', apiURL: 'http://localhost:8080' },
+  qa:      { baseURL: 'https://qa.leaveflow.example', apiURL: 'https://api.qa.leaveflow.example' },
+  staging: { baseURL: 'https://staging.leaveflow.example', apiURL: 'https://api.staging.leaveflow.example' },
+} as const;
+export const env = ENVS[(process.env.TEST_ENV ?? 'local') as keyof typeof ENVS];
+~~~
+
+- Select with one variable: \`TEST_ENV=qa npx playwright test\`; credentials come from env vars / CI secrets per environment.
+- Tag tests by where they may run (\`@smoke\` for post-deploy, \`@destructive\` never against shared staging).
+- Data: seed per environment through the API; never rely on records that only exist in one.
+- CI: a matrix or separate jobs per environment, each with its own artifacts.
+
+Show this in the README with the exact commands — it demonstrates environment management, not just test writing.`,
+          },
+          { kind: 'check', title: 'Check your understanding', questionIds: ['m24-q1', 'm24-q2', 'm24-q3'] },
           {
             kind: 'build',
             title: 'Publish the capstone',
@@ -47,6 +69,13 @@ export const m24: ModuleBundle = {
     ],
   },
   questions: [
+    {
+      id: 'm24-q3', skill: 'framework', moduleId: 'm24', type: 'mcq', difficulty: 2,
+      prompt: 'How should the LeaveFlow framework switch between local, QA and staging?',
+      options: opts('Edit the base URL in each test before running', 'One TEST_ENV variable selecting a typed config, with secrets from env vars per environment', 'Keep a separate copy of the suite per environment', 'Hard-code staging; it is closest to production'),
+      answer: ['b'],
+      explanation: 'One code base, configuration per environment, secrets outside the repo — the standard pattern for running against multiple environments.',
+    },
     {
       id: 'm24-q1', skill: 'framework', moduleId: 'm24', type: 'mcq', difficulty: 1,
       prompt: 'What should a reviewer be able to do within 5 minutes of opening your capstone repo?',

@@ -1,6 +1,6 @@
 # Progress report
 
-_Last updated 2026-10-19._
+_Last updated 2026-10-20._
 
 ## Verification results (run locally, Windows 11, Node 24.20)
 
@@ -23,7 +23,7 @@ E2E scenarios cover: start-here path, wrong answer → weakness queue → surviv
 | Criterion | Status |
 |---|---|
 | Existing files and CV inspected | Done (docs/source-inventory.md; private analysis) |
-| Complete curriculum mapped to requirements | Done — 529 topics: 501 covered, 28 partial, 0 gaps (keyword-verified) |
+| Complete curriculum mapped to requirements | Done — 529 topics: 529 covered, 0 partial, 0 gaps (keyword-verified) |
 | Personalised from CV evidence | Done via private profile pack (diagnostic seeds, CV facts in behavioral prompts) |
 | Dashboard and curriculum navigation | Done, E2E-tested |
 | Meaningful original lessons | Done — 54 lessons, 256 steps |
@@ -32,7 +32,7 @@ E2E scenarios cover: start-here path, wrong answer → weakness queue → surviv
 | Assessments evaluate answers correctly | Done, unit + E2E tested |
 | Progress persists across refresh | Done, E2E-tested |
 | Weakness tracking / revision | Done, unit + E2E tested |
-| Interview exercise with meaningful feedback | Done — 41 questions, 12 modes, 10-part feedback |
+| Interview exercise with meaningful feedback | Done — 49 questions, 12 modes, 10-part feedback |
 | Responsive and accessible | Done for tested widths; keyboard and screen-reader labels; reduced motion. No formal audit (axe/screen reader) yet |
 | Automated tests for critical journeys | Done |
 | Production build succeeds | Done |
@@ -46,7 +46,7 @@ E2E scenarios cover: start-here path, wrong answer → weakness queue → surviv
 | Every in-scope topic accounted for | Done (traceability matrix) |
 | All major learning modes | Done: lessons, visuals, videos, MCQ/multi/TF/predict/debug/scenario questions, runnable JS & SQL, Java self-review, build tasks, interview arena, flashcards, mixed quizzes |
 | Enterprise project path usable | Done (Projects page, 18 tasks) — the LeaveFlow app itself is for the learner to build |
-| Mock interview engine covers planned categories | Done (12 modes; DSA and CI/CD have 3 questions each — thinnest) |
+| Mock interview engine covers planned categories | Done (12 modes; every mode has 4+ questions; Java and AI/MCP are thinnest at 4) |
 | Analytics from real stored data | Done |
 | Public multi-user deployment | Not built — static per-browser use is supported; accounts/sync documented as future work |
 | No feature falsely represented | Scoring method, Java non-execution, self-assessment and estimates are labelled in the UI |
@@ -56,7 +56,6 @@ E2E scenarios cover: start-here path, wrong answer → weakness queue → surviv
 - **Interview scoring** is keyword/rubric-based. A short answer stuffed with the right phrases can score well; the learner-correction step is self-assessed. An optional BYO-key LLM grader is planned.
 - **Java** exercises are not executed (checklist + reference solution).
 - **Build tasks** and project tasks are self-assessed.
-- **28 topics are "partial"** in the traceability matrix (e.g. native vs hybrid apps detail, interpreting JMeter results, codebase indexing) — taught briefly, worth deepening.
 - **Videos** were verified to exist and match their topic by title/channel; they were not watched end to end.
 - **Accessibility:** no automated axe scan or screen-reader session yet.
 - **Bundle:** all content ships in the main chunk; per-module splitting would speed first load.
@@ -69,6 +68,6 @@ E2E scenarios cover: start-here path, wrong answer → weakness queue → surviv
 1. Import `profile.local.json` in Settings and follow the suggested order in curriculum-roadmap.md (start with M1 lesson 1).
 2. Commit the project (check `git status` first — `profile.local.json` and `private/` are ignored) and push to a new GitHub repo.
 3. Deploy to Cloudflare Pages following docs/deployment.md, then run the post-deploy checklist.
-4. Content: add 2–3 more DSA and CI/CD arena questions; deepen the 28 partial topics; add more Java problems with a downloadable JUnit project.
+4. Content: add more Java problems with a downloadable JUnit project; add Java and AI/MCP arena questions (4 each today).
 5. Quality: add an axe accessibility check to the E2E suite; split content per module.
 6. Optional: BYO-key LLM grading for interview answers (clearly labelled, off by default).

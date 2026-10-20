@@ -2,7 +2,7 @@
 
 An interactive, gamified learning platform for **SDET 3 / Senior SDET / QA Automation Lead / QA Lead / AI-Agentic QA** interviews. It teaches through active practice — graded questions, code and SQL that really run in your browser, interview answers with rubric feedback, and spaced revision — and tracks mastery only from assessed work.
 
-- 24 modules · 54 lessons · 154 graded questions · 35 coding/SQL/Java problems · 41 interview questions · 81 flashcards
+- 24 modules · 54 lessons · 169 graded questions · 35 coding/SQL/Java problems · 49 interview questions · 81 flashcards
 - 529 curriculum topics traced to content ([docs/requirements-traceability.md](docs/requirements-traceability.md))
 - 18 interactive visualizations (test pyramid, HashMap buckets, race conditions, WebDriver flow, BrowserContext isolation, CI pipeline, Kafka, agent loop, MCP, sharding, …)
 - 40 curated YouTube videos, each verified to exist and allow embedding

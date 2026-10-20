@@ -173,7 +173,35 @@ Map<Status, Long> counts = results.stream()
 
 **Optional<T>** makes "maybe missing" explicit: \`findUser(email).map(User::name).orElse("Guest")\`. Don't call get() without checking; don't use Optional for fields or parameters.`,
           },
-          { kind: 'check', title: 'Check your understanding', questionIds: ['m02-q8', 'm02-q9', 'm02-q10'] },
+          {
+            kind: 'learn',
+            title: 'Exception handling, string handling and lambda expressions in test code',
+            body: `**Exception handling — the hierarchy interviewers ask about:**
+- \`Throwable\` → \`Error\` (OutOfMemoryError — don't catch) and \`Exception\`.
+- **Checked** exceptions (IOException, SQLException) must be declared or caught — the compiler enforces it.
+- **Unchecked** exceptions (RuntimeException: NullPointerException, IllegalArgumentException, Selenium's NoSuchElementException, TimeoutException) don't.
+
+~~~java
+// try-with-resources closes the connection even if the assertion fails
+try (Connection c = DriverManager.getConnection(url, user, pass);
+     PreparedStatement ps = c.prepareStatement("SELECT status FROM leave_request WHERE id = ?")) {
+  ps.setLong(1, requestId);
+  try (ResultSet rs = ps.executeQuery()) {
+    assertTrue(rs.next(), "leave request " + requestId + " not found");
+    assertEquals("APPROVED", rs.getString("status"));
+  }
+} catch (SQLException e) {
+  throw new IllegalStateException("DB check failed for request " + requestId, e); // keep the cause
+}
+~~~
+
+Rules for **test code**: never swallow exceptions (\`catch (Exception e) {}\` turns a failure into a false pass); wrap with context and the original cause; use \`finally\`/try-with-resources for cleanup; assert expected exceptions explicitly (\`assertThrows(IllegalArgumentException.class, () -> svc.apply(-1))\`); and don't use exceptions for normal control flow (e.g. catching NoSuchElementException to check "is it absent?" — use \`findElements(...).isEmpty()\` instead).
+
+**String handling:** strings are immutable, so \`s + x\` in a loop creates a new object each time — use **StringBuilder** (or StringBuffer if shared across threads). Compare with \`equals\` / \`equalsIgnoreCase\`, never \`==\`. Common test utilities: \`trim()\`/\`strip()\` UI text, \`String.format\` / text blocks for payloads, \`split("\\\\s+")\`, \`replaceAll\` with regex, \`String.join\`, \`chars()\` for counting. Normalise before asserting (whitespace, case, currency formatting) — a lot of "flaky" UI assertions are really string-handling bugs.
+
+**Lambda expressions** are short implementations of a **functional interface** (one abstract method): \`(a, b) -> a + b\`. Method references are a shorter form: \`String::trim\`, \`WebElement::getText\`. In frameworks you meet them as: \`wait.until(d -> d.findElement(SAVE).isEnabled())\`, \`list.removeIf(r -> r.isCancelled())\`, \`Comparator.comparing(Leave::start)\`, and Supplier-based lazy data builders. Lambdas can only capture **effectively final** local variables.`,
+          },
+          { kind: 'check', title: 'Check your understanding', questionIds: ['m02-q8', 'm02-q9', 'm02-q10', 'm02-q14'] },
           { kind: 'practice', title: 'Streams: analyse test results', problemId: 'java-result-analyzer' },
         ],
       },
@@ -238,6 +266,13 @@ Report r = user.thenCombine(leaves, Report::new).orTimeout(5, TimeUnit.SECONDS).
     ],
   },
   questions: [
+    {
+      id: 'm02-q14', skill: 'java', moduleId: 'm02', type: 'multi', difficulty: 2,
+      prompt: 'Which exception-handling habits belong in good test code?',
+      options: opts('catch (Exception e) {} so one bad step does not stop the test', 'try-with-resources for connections and streams', 'Rethrow with context and keep the original cause', 'assertThrows for behaviour that must throw', 'Catch NoSuchElementException to check that an element is absent'),
+      answer: ['b', 'c', 'd'],
+      explanation: 'Swallowing exceptions hides failures, and using exceptions as control flow is slow and unclear — findElements(...).isEmpty() states the intent.',
+    },
     {
       id: 'm02-q1', skill: 'java', moduleId: 'm02', type: 'mcq', difficulty: 1,
       prompt: 'In `WebDriver driver = new ChromeDriver();`, which is true?',
