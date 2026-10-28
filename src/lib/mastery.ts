@@ -49,6 +49,8 @@ export function allMastery(attempts: Attempt[]): Record<Skill, SkillMastery> {
 
 export function masteryLabel(m: SkillMastery): string {
   if (m.items === 0) return 'Not assessed';
+  // With only one or two answers the accuracy is real but too thin to call a level.
+  if (m.items < 3) return 'Early signal';
   if (m.mastery >= 80) return 'Strong';
   if (m.mastery >= 60) return 'Solid';
   if (m.mastery >= 35) return 'Developing';

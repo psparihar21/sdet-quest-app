@@ -2,8 +2,8 @@
   "kind": "sdet-quest-profile",
   "version": 1,
   "profile": {
-    "name": "Your Name",
-    "headline": "Your current role and team",
+    "name": "Alex Morgan",
+    "headline": "Senior QA engineer (example profile: replace with your own)",
     "primaryLanguage": "javascript",
     "targetRoles": ["SDET 3", "QA Lead"],
     "cvFacts": [

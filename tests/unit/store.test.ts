@@ -91,3 +91,12 @@ describe('profile pack', () => {
     expect(Object.keys(twice.weaknesses)).toEqual(Object.keys(once.weaknesses));
   });
 });
+
+describe('recommendations', () => {
+  it('never recommends the in-progress lesson twice', async () => {
+    const { recommendations } = await import('@/lib/recommend');
+    const s = { ...initialState(), lessons: { 'm01-l1': { done: [0] } } };
+    const titles = recommendations(s).filter((r) => r.kind === 'continue' || r.kind === 'next').map((r) => r.to);
+    expect(new Set(titles).size).toBe(titles.length);
+  });
+});

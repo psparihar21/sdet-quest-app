@@ -63,9 +63,11 @@ export function recommendations(state: ProgressState, today = toDay()): Recommen
     if (out.some((r) => r.kind === 'continue')) break;
   }
 
-  const next = MODULES.find((m) => m.lessons.length > 0 && isUnlocked(m, state) && m.lessons.some((l) => !state.lessons[l.id]?.completedAt));
+  // A lesson already started is offered as "Continue" above, so "Next" means one not yet started.
+  const notStarted = (id: string) => !state.lessons[id]?.completedAt && !state.lessons[id]?.done.length;
+  const next = MODULES.find((m) => m.lessons.length > 0 && isUnlocked(m, state) && m.lessons.some((l) => notStarted(l.id)));
   if (next) {
-    const l = next.lessons.find((x) => !state.lessons[x.id]?.completedAt)!;
+    const l = next.lessons.find((x) => notStarted(x.id))!;
     out.push({ kind: 'next', title: `Next lesson: ${l.title}`, reason: `Module ${next.number} · ${next.title}`, to: `/learn/${next.id}/${l.id}`, cta: 'Start lesson' });
   }
 

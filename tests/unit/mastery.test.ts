@@ -68,3 +68,19 @@ describe('xp', () => {
     expect(currentStreak(a, '2026-10-25')).toBe(0);
   });
 });
+
+describe('labels and clipping', () => {
+  it('does not call a skill weak on one or two answers', async () => {
+    const { masteryLabel } = await import('@/lib/mastery');
+    expect(masteryLabel({ skill: 'dsa', mastery: 17, accuracy: 100, items: 1, attempts: 1 })).toBe('Early signal');
+    expect(masteryLabel({ skill: 'dsa', mastery: 20, accuracy: 40, items: 4, attempts: 4 })).toBe('Weak');
+  });
+  it('clips text on a word boundary with an ellipsis', async () => {
+    const { clip } = await import('@/components/ui');
+    expect(clip('short', 80)).toBe('short');
+    const c = clip('A UI test checks that leave longer than the balance is rejected with an error message shown', 60);
+    expect(c.endsWith('…')).toBe(true);
+    expect(c.length).toBeLessThanOrEqual(60);
+    expect(c).not.toMatch(/ …$/);
+  });
+});

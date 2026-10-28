@@ -1,6 +1,13 @@
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
 import { Link, type LinkProps } from 'react-router-dom';
 
+/** Shortens text to n characters on a word boundary, with an ellipsis. */
+export function clip(text: string, n: number): string {
+  if (text.length <= n) return text;
+  const cut = text.slice(0, n - 1);
+  return `${cut.slice(0, cut.lastIndexOf(" ") > n / 2 ? cut.lastIndexOf(" ") : cut.length).trimEnd().replace(/[.,;:!?]+$/, "")}…`;
+}
+
 export function cx(...parts: (string | false | null | undefined)[]): string {
   return parts.filter(Boolean).join(' ');
 }

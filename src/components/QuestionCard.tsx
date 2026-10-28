@@ -5,7 +5,7 @@ import { evaluateChoice, type ChoiceResult } from '@/lib/evaluate/choice';
 import { useProgress } from '@/store/progress';
 import { Markdown } from './Markdown';
 import { FollowUp } from './FollowUp';
-import { Badge, Button, cx } from './ui';
+import { Badge, Button, clip, cx } from './ui';
 
 /** Kind of question; the answer mode (one vs several) is shown separately and more prominently. */
 const TYPE_LABEL: Partial<Record<Question['type'], string>> = {
@@ -54,7 +54,7 @@ export function QuestionCard({
         skill: question.skill,
         moduleId: question.moduleId,
         score: r.score,
-        topic: question.prompt.replace(/\*\*/g, '').replace(/`/g, '').slice(0, 80),
+        topic: clip(question.prompt.replace(/\*\*/g, '').replace(/`/g, ''), 80),
         detail: { selected },
       });
     }

@@ -9,7 +9,7 @@ import { useProgress } from '@/store/progress';
 import type { InterviewAnswer } from '@/store/types';
 import { Markdown } from './Markdown';
 import { FollowUp } from './FollowUp';
-import { Badge, Button, Notice, cx } from './ui';
+import { Badge, Button, Notice, clip, cx } from './ui';
 
 /** Self-adjustment can raise the auto-detected technical score by at most this much. */
 export const MAX_SELF_RAISE = 3;
@@ -63,7 +63,7 @@ export function InterviewRunner({
     const detail = { covered: coveredIds, depth: r.depth, communication: r.communication, selfAdjusted, words: r.words, seconds };
     // A self-correction rescores the same attempt; it must not count as a second answer.
     if (attemptId.current) rescoreAttempt(attemptId.current, technical / 10, detail);
-    else attemptId.current = recordAttempt({ itemId: question.id, itemType: 'interview', skill: question.skill, score: technical / 10, topic: question.prompt.slice(0, 80), detail }).id;
+    else attemptId.current = recordAttempt({ itemId: question.id, itemType: 'interview', skill: question.skill, score: technical / 10, topic: clip(question.prompt, 80), detail }).id;
     const a: InterviewAnswer = { questionId: question.id, answer, at: new Date().toISOString(), technical, depth: r.depth, communication: r.communication, covered: coveredIds, selfAdjusted, seconds };
     onSubmitted?.(a);
     return technical;
