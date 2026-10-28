@@ -14,7 +14,7 @@ SDET Quest is a static site: `npm run build` produces `dist/`, which any static 
 | Static requests / bandwidth | No limit stated for static assets |
 | Custom domains | 100 per project |
 
-SPA routing works via `public/_redirects` (`/* /index.html 200`).
+SPA routing works via `public/_redirects` (`/* /index.html 200`). Security headers, including a separate stricter CSP for the code-sandbox workers, come from `public/_headers` (Cloudflare Pages and Netlify both read it).
 
 ### Steps
 
@@ -57,7 +57,9 @@ Build command `npm run build`, publish directory `dist`.
 - [ ] `git status` shows no `profile.local.json`, `private/`, `.env` or test-results
 - [ ] `npm run preview` → click through Dashboard, a lesson, Coding Lab (JS + SQL), Arena, Revision, Settings
 - [ ] After deploying: open a deep link directly (e.g. `/learn/m04/m04-l1`) and refresh — it must load
-- [ ] Run one SQL problem on the deployed site (checks the `.wasm` asset is served)
+- [ ] Run one SQL problem on the deployed site (checks the `.wasm` asset is served and the SQL worker CSP allows WebAssembly)
+- [ ] Run one JS problem and check the browser console shows no CSP errors (confirms the `/sandbox/*` header rules applied)
+- [ ] Check headers: `curl -sI https://<your-site>/` shows `content-security-policy` and `x-content-type-options`
 - [ ] Import your profile pack on the deployed site only in your own browser
 
 ## What "multi-user" would need (not built)
@@ -66,4 +68,4 @@ Public visitors already get their own progress in their own browsers. Shared acc
 
 ## Deployment status
 
-Not deployed yet. The builds (`npm run build`, `npm run build:gh-pages`) succeed locally; no hosting account was used.
+Not deployed yet. Builds succeed locally; the source is on GitHub (private repository).

@@ -25,7 +25,7 @@ function Choice<T extends string>({ label, value, options, onChange }: { label: 
       <legend className="text-sm font-medium text-ink">{label}</legend>
       <div className="mt-1.5 flex flex-wrap gap-2">
         {options.map(([v, t]) => (
-          <label key={v} className={cx('cursor-pointer rounded-lg border px-3 py-1.5 text-[13px]', value === v ? 'border-accent bg-accent-soft text-accent-strong' : 'border-line text-muted hover:text-ink')}>
+          <label key={v} className={cx('cursor-pointer rounded-lg border px-3 py-1.5 text-[13px] has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-[var(--focus)] has-[:focus-visible]:outline', value === v ? 'border-accent bg-accent-soft text-accent-strong' : 'border-line text-muted hover:text-ink')}>
             <input type="radio" className="sr-only" name={label} checked={value === v} onChange={() => onChange(v)} />
             {t}
           </label>

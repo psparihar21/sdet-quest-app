@@ -66,10 +66,10 @@ function BuildTask({ section, lessonId, index, onDone }: { section: Extract<Sect
           ))}
         </div>
         <div className="mt-3 flex flex-wrap items-center gap-3">
-          <Button variant="primary" onClick={submit} disabled={submitted || note.trim().length < 40}>
+          <Button variant="primary" onClick={submit} disabled={submitted || note.trim().length < 40 || checked.length === 0}>
             Submit self-review
           </Button>
-          <span className="text-xs text-faint">{submitted ? `Recorded as self-assessed: ${checked.length}/${section.acceptance.length} criteria.` : 'Write at least a few lines first. Self-assessed scores are labelled as such.'}</span>
+          <span className="text-xs text-faint">{submitted ? `Recorded as self-assessed: ${checked.length}/${section.acceptance.length} criteria.` : 'Write at least a few lines and tick what your work covers. Self-assessed scores are labelled as such.'}</span>
         </div>
       </fieldset>
     </div>
@@ -77,8 +77,11 @@ function BuildTask({ section, lessonId, index, onDone }: { section: Extract<Sect
 }
 
 function CheckSection({ ids, onAllAnswered }: { ids: string[]; onAllAnswered: () => void }) {
-  // Ids answered in this visit; the step completes once every question has an attempt.
-  const answered = useRef(new Set<string>());
+  // The step completes once every question in it has a stored attempt (from this visit or an earlier one).
+  const allAnswered = () => {
+    const tried = new Set(useProgress.getState().attempts.filter((a) => a.itemType === 'question').map((a) => a.itemId));
+    return ids.every((id) => !getQuestion(id) || tried.has(id));
+  };
   return (
     <div className="space-y-4">
       {ids.map((id, i) => {
@@ -89,10 +92,7 @@ function CheckSection({ ids, onAllAnswered }: { ids: string[]; onAllAnswered: ()
             key={id}
             question={q}
             index={i}
-            onAnswered={() => {
-              answered.current.add(id);
-              if (answered.current.size === ids.length) onAllAnswered();
-            }}
+            onAnswered={() => allAnswered() && onAllAnswered()}
           />
         );
       })}
@@ -117,6 +117,12 @@ function LessonView() {
     return first === -1 ? 0 : first;
   });
   const [showNotes, setShowNotes] = useState(false);
+  const focusOnStep = useRef(false);
+  useEffect(() => {
+    if (!focusOnStep.current) return;
+    focusOnStep.current = false;
+    document.getElementById('lesson-section')?.focus();
+  }, [idx]);
 
   if (!found || found.module.id !== moduleId) return <NotFound />;
   const { module: m, lesson, index: lessonIndex } = found;
@@ -126,17 +132,18 @@ function LessonView() {
   const isDone = (i: number) => done.includes(i);
   const complete = () => markSection(lesson.id, idx, total);
   const go = (i: number) => {
+    focusOnStep.current = true;
     setIdx(Math.max(0, Math.min(total - 1, i)));
-    document.getElementById('lesson-section')?.focus();
   };
+  const firstUndone = lesson.sections.findIndex((_, i) => !isDone(i) && i !== idx);
   const nextLesson = m.lessons[lessonIndex + 1];
   const lessonDone = !!progress?.completedAt;
   // Passive sections are completed by moving on; assessed sections complete only when attempted.
   const passive = section.kind === 'learn' || section.kind === 'visual' || section.kind === 'video';
 
   return (
-    <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[230px_minmax(0,1fr)]">
-      <aside className="min-w-0 lg:sticky lg:top-8 lg:self-start" aria-label="Lesson steps">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-6 xl:grid-cols-[230px_minmax(0,1fr)]">
+      <aside className="min-w-0 xl:sticky xl:top-8 xl:self-start" aria-label="Lesson steps">
         <nav aria-label="Breadcrumb" className="mb-3 text-xs text-faint">
           <Link to="/learn" className="hover:text-ink">
             Curriculum
@@ -150,7 +157,7 @@ function LessonView() {
         <p className="mb-3 text-xs text-muted">
           {lesson.minutes} min · {done.length}/{total} steps
         </p>
-        <ol className="flex gap-1 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible">
+        <ol className="flex gap-1 overflow-x-auto pb-1 xl:flex-col xl:overflow-visible">
           {lesson.sections.map((s, i) => (
             <li key={i} className="shrink-0">
               <button
@@ -164,15 +171,15 @@ function LessonView() {
                 )}
               >
                 {isDone(i) ? <CheckCircle2 size={14} className="shrink-0 text-ok" aria-label="done" /> : <span className="flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full border border-line-strong text-[9px]">{i + 1}</span>}
-                <span className="whitespace-nowrap lg:whitespace-normal">
+                <span className="whitespace-nowrap xl:whitespace-normal">
                   <span className="text-[10.5px] uppercase tracking-wide text-faint">{STAGE[s.kind]}</span>
-                  <span className="hidden lg:block">{s.title}</span>
+                  <span className="hidden xl:block">{s.title}</span>
                 </span>
               </button>
             </li>
           ))}
         </ol>
-        <div className="mt-4 hidden gap-2 lg:flex">
+        <div className="mt-3 flex gap-2 xl:mt-4">
           <Button size="sm" variant="ghost" onClick={() => toggleBookmark(lesson.id)} aria-pressed={bookmarked}>
             {bookmarked ? <BookmarkCheck size={14} aria-hidden="true" /> : <Bookmark size={14} aria-hidden="true" />} {bookmarked ? 'Saved' : 'Bookmark'}
           </Button>
@@ -265,9 +272,17 @@ function LessonView() {
               {passive ? 'Got it, next' : isDone(idx) ? 'Next' : 'Skip for now'} <ChevronRight size={15} aria-hidden="true" />
             </Button>
           ) : (
-            <Button variant="primary" onClick={() => passive && complete()} disabled={!passive && !isDone(idx)}>
-              {passive ? 'Finish lesson' : isDone(idx) ? 'Step complete' : 'Complete this step to finish'}
-            </Button>
+            // The lesson only completes when every step is done, so send the learner to what's missing instead of a dead button.
+            !lessonDone &&
+            (firstUndone !== -1 && (passive || isDone(idx)) ? (
+              <Button variant="primary" onClick={() => { if (passive) complete(); go(firstUndone); }}>
+                Finish skipped step {firstUndone + 1} <ChevronRight size={15} aria-hidden="true" />
+              </Button>
+            ) : (
+              <Button variant="primary" onClick={complete} disabled={!passive}>
+                {passive ? 'Finish lesson' : 'Complete this step to finish'}
+              </Button>
+            ))
           )}
         </div>
 
@@ -297,10 +312,9 @@ function LessonView() {
 /** Marks a practice step done once the learner has made at least one graded attempt on the problem. */
 function ProblemAttemptWatcher({ problemId, onAttempt }: { problemId: string; onAttempt: () => void }) {
   const count = useProgress((s) => s.attempts.filter((a) => a.itemType === 'problem' && a.itemId === problemId).length);
-  const [initial] = useState(count);
   useEffect(() => {
-    if (count > initial) onAttempt();
-  }, [count, initial, onAttempt]);
+    if (count > 0) onAttempt();
+  }, [count, onAttempt]);
   return null;
 }
 

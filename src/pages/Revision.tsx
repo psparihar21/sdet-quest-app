@@ -18,14 +18,17 @@ type Tab = 'due' | 'weak' | 'mistakes' | 'cards' | 'mixed';
 
 const REVIEWABLE = new Set(['question', 'flashcard', 'problem', 'interview']);
 
-function Flashcard({ id, review, onDone }: { id: string; review: boolean; onDone?: () => void }) {
+const hasContent = (c: SrsCard) =>
+  !!(c.itemType === 'question' ? getQuestion(c.itemId) : c.itemType === 'flashcard' ? getFlashcard(c.itemId) : c.itemType === 'problem' ? getProblem(c.itemId) : getInterview(c.itemId));
+
+function Flashcard({ id, onDone }: { id: string; onDone?: () => void }) {
   const card = getFlashcard(id);
   const recordAttempt = useProgress((s) => s.recordAttempt);
   const [flipped, setFlipped] = useState(false);
   const [graded, setGraded] = useState(false);
   if (!card) return null;
   const grade = (score: number) => {
-    recordAttempt({ itemId: id, itemType: 'flashcard', skill: card.skill, moduleId: card.moduleId, score, topic: card.front, review, detail: { selfGraded: true } });
+    recordAttempt({ itemId: id, itemType: 'flashcard', skill: card.skill, moduleId: card.moduleId, score, topic: card.front, detail: { selfGraded: true } });
     setGraded(true);
     onDone?.();
   };
@@ -62,9 +65,9 @@ function Flashcard({ id, review, onDone }: { id: string; review: boolean; onDone
 function DueItem({ card, onDone }: { card: SrsCard; onDone: () => void }) {
   if (card.itemType === 'question') {
     const q = getQuestion(card.itemId);
-    return q ? <QuestionCard question={q} review onAnswered={onDone} /> : null;
+    return q ? <QuestionCard question={q} onAnswered={onDone} /> : null;
   }
-  if (card.itemType === 'flashcard') return <Flashcard id={card.itemId} review onDone={onDone} />;
+  if (card.itemType === 'flashcard') return <Flashcard id={card.itemId} onDone={onDone} />;
   if (card.itemType === 'interview') {
     const q = getInterview(card.itemId);
     return q ? <InterviewRunner question={q} onSubmitted={onDone} /> : null;
@@ -125,10 +128,10 @@ function DueSession({ cards }: { cards: SrsCard[] }) {
 }
 
 function MixedQuiz() {
-  const weaknesses = useProgress((s) => s.weaknesses);
   const [seed, setSeed] = useState(() => (Date.now() % 100000) + 1);
+  // Weak skills are read once per set, so answering a question can't reshuffle the cards you're reading.
   const picks = useMemo(() => {
-    const weakSkills = new Set(activeQueue(weaknesses).map((w) => w.skill));
+    const weakSkills = new Set(activeQueue(useProgress.getState().weaknesses).map((w) => w.skill));
     let x = seed * 9301 + 49297;
     const rand = () => ((x = (x * 16807) % 2147483647) / 2147483647);
     return [...QUESTIONS]
@@ -136,12 +139,12 @@ function MixedQuiz() {
       .sort((a, b) => a.k - b.k)
       .slice(0, 5)
       .map((r) => r.q);
-  }, [seed, weaknesses]);
+  }, [seed]);
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted">Five questions across modules, weighted toward your weak skills. Interleaving topics is harder than blocked practice — and better for retention.</p>
       {picks.map((q, i) => (
-        <QuestionCard key={`${seed}-${q.id}`} question={q} index={i} review />
+        <QuestionCard key={`${seed}-${q.id}`} question={q} index={i} />
       ))}
       <Button onClick={() => setSeed((s) => s + 1)}>New mixed set</Button>
     </div>
@@ -154,16 +157,31 @@ export default function Revision() {
   const srs = useProgress((s) => s.srs);
   const weaknesses = useProgress((s) => s.weaknesses);
   const attempts = useProgress((s) => s.attempts);
-  const due = dueCards(srs, today).filter((c) => REVIEWABLE.has(c.itemType));
+  const due = dueCards(srs, today).filter((c) => REVIEWABLE.has(c.itemType) && hasContent(c));
   const queue = activeQueue(weaknesses);
   const repeated = repeatedMistakes(weaknesses);
   const resolved = Object.values(weaknesses).filter((w) => w.status === 'resolved');
   const cal = upcoming(srs, 13, today);
   const [tab, setTab] = useState<Tab>('due');
-  const wrongQuestions = [...new Set(attempts.filter((a) => a.itemType === 'question' && !a.correct).map((a) => a.itemId))].filter((id) => {
-    const latest = [...attempts].reverse().find((a) => a.itemType === 'question' && a.itemId === id);
-    return latest && !latest.correct;
-  });
+  // Snapshot when the page opens, so a card answered correctly stays visible with its feedback.
+  const [wrongQuestions] = useState(() =>
+    [...new Set(attempts.filter((a) => a.itemType === 'question' && !a.correct).map((a) => a.itemId))].filter((id) => {
+      const latest = [...attempts].reverse().find((a) => a.itemType === 'question' && a.itemId === id);
+      return latest && !latest.correct && getQuestion(id);
+    }),
+  );
+
+  // Standard tab pattern: arrows/Home/End move between tabs, Tab moves into the panel.
+  const onTabKey = (e: React.KeyboardEvent) => {
+    const ids = TABS.map(([id]) => id);
+    const i = ids.indexOf(tab);
+    const next = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: ids.length - 1 }[e.key];
+    if (next === undefined) return;
+    e.preventDefault();
+    const t = ids[(next + ids.length) % ids.length];
+    setTab(t);
+    document.getElementById(`tab-${t}`)?.focus();
+  };
 
   const TABS: [Tab, string, number?][] = [
     ['due', 'Due now', due.length],
@@ -189,16 +207,16 @@ export default function Revision() {
         </ol>
       </Card>
 
-      <div className="flex flex-wrap gap-1 border-b border-line" role="tablist" aria-label="Revision views">
+      <div className="flex flex-wrap gap-1 border-b border-line" role="tablist" aria-label="Revision views" onKeyDown={onTabKey}>
         {TABS.map(([id, label, n]) => (
-          <button key={id} type="button" role="tab" id={`tab-${id}`} aria-selected={tab === id} aria-controls={`panel-${id}`} onClick={() => setTab(id)} className={cx('-mb-px border-b-2 px-3 py-2 text-[13.5px]', tab === id ? 'border-accent text-ink' : 'border-transparent text-muted hover:text-ink')}>
+          <button key={id} type="button" role="tab" id={`tab-${id}`} tabIndex={tab === id ? 0 : -1} aria-selected={tab === id} aria-controls={`panel-${id}`} onClick={() => setTab(id)} className={cx('-mb-px border-b-2 px-3 py-2 text-[13.5px]', tab === id ? 'border-accent text-ink' : 'border-transparent text-muted hover:text-ink')}>
             {label}
             {n !== undefined && <span className="ml-1.5 text-xs text-faint">{n}</span>}
           </button>
         ))}
       </div>
 
-      <div role="tabpanel" id={`panel-${tab}`} aria-labelledby={`tab-${tab}`}>
+      <div role="tabpanel" tabIndex={0} id={`panel-${tab}`} aria-labelledby={`tab-${tab}`}>
         {tab === 'due' && <DueSession cards={due} />}
 
         {tab === 'weak' && (
@@ -245,7 +263,7 @@ export default function Revision() {
             ) : (
               wrongQuestions.map((id, i) => {
                 const q = getQuestion(id);
-                return q ? <QuestionCard key={id} question={q} index={i} review /> : null;
+                return q ? <QuestionCard key={id} question={q} index={i} /> : null;
               })
             )}
           </div>
@@ -254,7 +272,7 @@ export default function Revision() {
         {tab === 'cards' && (
           <div className="grid gap-3 md:grid-cols-2">
             {FLASHCARDS.map((c) => (
-              <Flashcard key={c.id} id={c.id} review={false} />
+              <Flashcard key={c.id} id={c.id} />
             ))}
           </div>
         )}

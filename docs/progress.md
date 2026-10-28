@@ -1,6 +1,19 @@
 # Progress report
 
-_Last updated 2026-10-20._
+_Last updated 2026-10-28._
+
+## Quality pass (2026-10-28)
+
+Three independent audits (React/TypeScript logic, security, WCAG 2.2 accessibility) plus a browser pass and user-reported screenshots. Fixed:
+
+- **Scoring integrity:** re-answering early no longer climbs the revision ladder or earns review XP; "Try again" is practice and isn't graded; interview self-corrections rescore the same attempt instead of logging a second one; partially passing code (e.g. 4/5 tests) no longer counts as correct; build tasks need at least one ticked criterion; weakness pass-tracking no longer gets stuck after a same-day miss.
+- **Learning flow:** "Finish lesson" sends you to skipped steps instead of silently doing nothing; check and practice steps remember earlier answers; keyboard focus moves to each new step; the mixed quiz no longer reshuffles while you read; correct answers stay visible in "Previous mistakes"; revision can't get stuck on removed content; only finished mock interviews count in averages.
+- **Security:** CSP and security headers (`public/_headers`), with the code-sandbox workers isolated under their own no-network CSP; prototype-chain API stripping in the JS worker; all saved progress, backups and profile packs validated on load, with corrupted data set aside instead of crashing; storage-full warning; production dependencies upgraded (react-router 7, zod 4): `npm audit --omit=dev` reports 0 vulnerabilities.
+- **Accessibility:** contrast fixes for faint text and light-theme accent buttons; native modal dialog for the mobile menu (focus trap, Escape, focus return); arrow-key radio groups and tabs; focus moves to feedback after answering and to the page on navigation; visible focus on editor and settings; screen-reader text for correct/incorrect marks and badges.
+- **Interviewer follow-ups:** every follow-up question (quizzes and all 49 interview questions) now has a model answer, revealed on demand with "Think it through, then show a strong answer". A content test fails if one is missing.
+- **Answer-mode cue:** questions show a coloured "One answer" or "Multiple answers" pill and a one-line instruction above the options; multi-select options use tick boxes.
+- **Responsive layout:** new `e2e/layout.spec.ts` checks 17 pages at 375, 768, 1024, 1440 and 1920 px for sideways overflow; the lesson step rail stays horizontal below 1280 px so content isn't squeezed, and Bookmark/Notes are now available on phones.
+- **UI (from screenshots):** code blocks no longer turn `=>` into `⇒` (ligatures off) and wrap long lines; content aligns with the sidebar on wide screens; multi-select options show a tick.
 
 ## Verification results (run locally, Windows 11, Node 24.20)
 
@@ -8,10 +21,10 @@ _Last updated 2026-10-20._
 |---|---|---|
 | Lint | `npm run lint` | Pass, 0 warnings |
 | Typecheck | `npm run typecheck` | Pass |
-| Unit tests | `npm test` | **100 passed** (logic, evaluators, every JS and SQL reference solution, store/migrations, profile packs, content integrity, privacy) |
+| Unit tests | `npm test` | **107 passed** (logic, evaluators, scoring regressions, every JS and SQL reference solution, store validation, security headers, profile packs, content integrity, privacy) |
 | Production build | `npm run build` | Pass (main bundle ≈ 215 kB gzip) |
 | GitHub Pages build | `npm run build:gh-pages` | Pass |
-| E2E | `npm run e2e` | **40 passed** (20 scenarios × desktop 1280×800 and Pixel 7 mobile) |
+| E2E | `npm run e2e` | **48 passed, 6 skipped** (desktop 1280×800 and Pixel 7 mobile, plus layout checks at five widths; desktop 1280×800 and Pixel 7 mobile; adds corrupted-storage recovery and mobile-menu Escape/focus) |
 | Fresh install | clean copy → `npm ci` → `npm run check` | Pass |
 | Videos | `npm run verify:videos` | 40/40 available and embeddable |
 | Manual browser check | dev server | Dashboard, lesson 1 (pyramid visual, quiz feedback), JS and SQL execution, interview feedback, persistence after reload |

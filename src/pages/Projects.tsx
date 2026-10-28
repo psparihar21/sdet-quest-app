@@ -16,7 +16,7 @@ function TaskRow({ task }: { task: ProjectTask }) {
   return (
     <li className="rounded-lg border border-line">
       <div className="flex items-start gap-3 p-3">
-        <button type="button" onClick={() => setTask(task.id, !done)} aria-pressed={done} aria-label={done ? `Mark "${task.title}" as not done` : `Mark "${task.title}" as done`} className="mt-0.5">
+        <button type="button" onClick={() => setTask(task.id, !done)} aria-pressed={done} aria-label={`Done: ${task.title}`} className="mt-0.5">
           {done ? <CheckCircle2 size={19} className="text-ok" /> : <Circle size={19} className="text-faint hover:text-ink" />}
         </button>
         <button type="button" className="min-w-0 flex-1 text-left" onClick={() => setOpen((o) => !o)} aria-expanded={open}>

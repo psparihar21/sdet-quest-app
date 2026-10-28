@@ -8,6 +8,7 @@ import { evaluateAnswer, scoreFromCovered, seniorityFor, type RubricResult } fro
 import { useProgress } from '@/store/progress';
 import type { InterviewAnswer } from '@/store/types';
 import { Markdown } from './Markdown';
+import { FollowUp } from './FollowUp';
 import { Badge, Button, Notice, cx } from './ui';
 
 /** Self-adjustment can raise the auto-detected technical score by at most this much. */
@@ -38,6 +39,7 @@ export function InterviewRunner({
   onSubmitted?: (answer: InterviewAnswer) => void;
 }) {
   const recordAttempt = useProgress((s) => s.recordAttempt);
+  const rescoreAttempt = useProgress((s) => s.rescoreAttempt);
   const cvFacts = useProgress((s) => s.profile.cvFacts);
   const [answer, setAnswer] = useState('');
   const [result, setResult] = useState<RubricResult | null>(null);
@@ -55,16 +57,13 @@ export function InterviewRunner({
   const remaining = timeLimit - seconds;
   const overtime = timed && remaining < 0;
 
+  const attemptId = useRef<string | null>(null);
   const record = (r: RubricResult, coveredIds: string[], selfAdjusted: boolean) => {
     const technical = selfAdjusted ? Math.min(scoreFromCovered(question, coveredIds, r.redFlags.length), r.technical + MAX_SELF_RAISE) : r.technical;
-    recordAttempt({
-      itemId: question.id,
-      itemType: 'interview',
-      skill: question.skill,
-      score: technical / 10,
-      topic: question.prompt.slice(0, 80),
-      detail: { covered: coveredIds, depth: r.depth, communication: r.communication, selfAdjusted, words: r.words, seconds },
-    });
+    const detail = { covered: coveredIds, depth: r.depth, communication: r.communication, selfAdjusted, words: r.words, seconds };
+    // A self-correction rescores the same attempt; it must not count as a second answer.
+    if (attemptId.current) rescoreAttempt(attemptId.current, technical / 10, detail);
+    else attemptId.current = recordAttempt({ itemId: question.id, itemType: 'interview', skill: question.skill, score: technical / 10, topic: question.prompt.slice(0, 80), detail }).id;
     const a: InterviewAnswer = { questionId: question.id, answer, at: new Date().toISOString(), technical, depth: r.depth, communication: r.communication, covered: coveredIds, selfAdjusted, seconds };
     onSubmitted?.(a);
     return technical;
@@ -218,8 +217,8 @@ export function InterviewRunner({
                 <p className="mt-1 text-xs text-faint">One good answer, not a script — learn the reasoning, then say it your way with your own examples.</p>
               </li>
               <li>
-                <p className="text-xs font-semibold uppercase tracking-wide text-faint">9 · Interviewer follow-up</p>
-                <p className="mt-1 font-medium">“{question.followUp}”</p>
+                <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-faint">9 · What they'll ask next</p>
+                <FollowUp id={question.id} question={question.followUp} />
               </li>
               <li>
                 <p className="text-xs font-semibold uppercase tracking-wide text-faint">10 · Revise next</p>

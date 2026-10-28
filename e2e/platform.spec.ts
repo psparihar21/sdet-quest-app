@@ -47,7 +47,7 @@ test('STAR stories can be written, saved and persist', async ({ page }) => {
 
 test('project tasks can be checked off and persist', async ({ page }) => {
   await page.goto('/projects');
-  await page.getByRole('button', { name: 'Mark "Write the test strategy" as done' }).click();
+  await page.getByRole('button', { name: 'Done: Write the test strategy' }).click();
   await page.reload();
   await expect(page.getByText('1/18 tasks')).toBeVisible();
 });
@@ -72,4 +72,27 @@ test('every module page and first lesson renders without errors', async ({ page 
     await expect(page.getByText(/Step 1 of/)).toBeVisible();
   }
   expect(errors).toEqual([]);
+});
+
+test('corrupted saved progress is set aside instead of crashing the app', async ({ page }) => {
+  await page.addInitScript(() => {
+    if (!sessionStorage.getItem('seeded')) {
+      localStorage.setItem('sdet-quest:v1', JSON.stringify({ state: { schemaVersion: 1, attempts: null, stories: 'oops' }, version: 1 }));
+      sessionStorage.setItem('seeded', '1');
+    }
+  });
+  await page.goto('/');
+  await expect(page.getByRole('heading', { name: 'Start here' })).toBeVisible();
+  const keys = await page.evaluate(() => Object.keys(localStorage));
+  expect(keys.some((k) => k.startsWith('sdet-quest:v1:corrupt-'))).toBe(true);
+});
+
+test('the mobile menu traps focus and closes on Escape', async ({ page, isMobile }) => {
+  test.skip(!isMobile, 'mobile-only menu');
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Open menu' }).click();
+  await expect(page.getByRole('dialog', { name: 'Menu' })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog', { name: 'Menu' })).toBeHidden();
+  await expect(page.getByRole('button', { name: 'Open menu' })).toBeFocused();
 });

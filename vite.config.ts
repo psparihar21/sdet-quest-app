@@ -9,7 +9,11 @@ export default defineConfig({
   base: process.env.VITE_BASE_PATH ?? '/',
   plugins: [react(), tailwindcss()],
   resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },
-  worker: { format: 'es' },
+  // Workers get their own folder so public/_headers can give them a stricter, separate CSP.
+  worker: {
+    format: 'es',
+    rollupOptions: { output: { entryFileNames: 'sandbox/[name]-[hash].js', chunkFileNames: 'sandbox/[name]-[hash].js' } },
+  },
   build: {
     target: 'es2022',
     chunkSizeWarningLimit: 900,

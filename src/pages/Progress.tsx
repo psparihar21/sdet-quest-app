@@ -45,7 +45,7 @@ export default function Progress() {
     const xs = graded.filter((a) => a.itemType === t);
     return { t, n: xs.length, acc: xs.length ? Math.round((xs.filter((a) => a.correct).length / xs.length) * 100) : 0 };
   });
-  const mocks = state.interviews.filter((i) => i.answers.length).map((i) => ({ at: i.startedAt, avg: i.answers.reduce((s, a) => s + a.technical, 0) / i.answers.length, mode: i.mode }));
+  const mocks = state.interviews.filter((i) => i.finishedAt && i.answers.length).map((i) => ({ at: i.startedAt, avg: i.answers.reduce((s, a) => s + a.technical, 0) / i.answers.length, mode: i.mode }));
   const repeated = repeatedMistakes(state.weaknesses);
 
   return (

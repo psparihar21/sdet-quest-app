@@ -11,7 +11,7 @@
   --border-strong: #33425b;
   --text: #e6ebf2;
   --text-muted: #9aa7ba;
-  --text-faint: #6b788c;
+  --text-faint: #8391a6;
   --accent: #2dd4bf;
   --accent-strong: #5eead4;
   --accent-ink: #04201c;
@@ -41,9 +41,9 @@
   --border-strong: #c5cdd8;
   --text: #121826;
   --text-muted: #4b5668;
-  --text-faint: #6b7586;
-  --accent: #0d9488;
-  --accent-strong: #0f766e;
+  --text-faint: #646e80;
+  --accent: #0f766e;
+  --accent-strong: #115e59;
   --accent-ink: #ffffff;
   --accent-soft: rgb(13 148 136 / 0.1);
   --xp: #b45309;
@@ -114,6 +114,21 @@
 
   ::selection {
     background: var(--accent-soft);
+  }
+
+  /* Code must show the characters learners type: no "=>" → "⇒" ligatures, and long lines wrap instead of hiding. */
+  pre,
+  code,
+  kbd,
+  samp,
+  .font-mono,
+  .cm-content {
+    font-variant-ligatures: none;
+    font-feature-settings: 'liga' 0, 'calt' 0;
+  }
+  pre {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
   }
 
   .card {
@@ -281,5 +296,6 @@
   font-size: 13.5px;
 }
 .cm-editor.cm-focused {
-  outline: none;
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
 }

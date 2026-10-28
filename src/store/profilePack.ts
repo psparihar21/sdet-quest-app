@@ -27,7 +27,8 @@ export const profilePackSchema = z.object({
         topic: z.string(),
         score: z.number().min(0).max(1),
         at: z.string(),
-        relatedItems: z.array(z.string()).default([]),
+        // "type:id" or a bare question id; anything else would create revision cards the app cannot render.
+        relatedItems: z.array(z.string().regex(/^((question|problem|interview|flashcard):)?[\w-]{1,80}$/)).default([]),
       }),
     )
     .default([]),

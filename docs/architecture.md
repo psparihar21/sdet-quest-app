@@ -72,7 +72,7 @@ The store talks to `ProgressRepository` (`src/store/repository.ts`). Today it is
 
 ## Execution sandboxes
 
-- **JS/TS:** each run creates a new module Worker; network/storage globals (`fetch`, `XMLHttpRequest`, `WebSocket`, `importScripts`, `indexedDB`, …) are removed; the main thread terminates it after 2 s. Inputs are deep-cloned per test so tests can't contaminate each other. Code runs only in the learner's own browser, with the same privileges as typing it into DevTools — there is no server to attack.
+- **JS/TS:** each run creates a new module Worker built into `dist/sandbox/`. That path gets its own Content-Security-Policy (`public/_headers`): `script-src 'self' 'unsafe-eval'; connect-src 'none'`, so learner code can run but cannot fetch, open sockets or `import()` remote code. As a second layer the worker deletes network/storage APIs from `self` and its prototype chain. The main thread terminates the worker after 2 s. Inputs are deep-cloned per test so tests can't contaminate each other. Code runs only in the learner's own browser, with the same privileges as typing it into DevTools — there is no server to attack.
 - **SQL:** a Worker loads sql.js, builds a fresh copy of the seed DB per run, runs the learner query and the reference query, and compares result sets by value (column names ignored, order only when the problem requires it). 4 s timeout.
 - **Java:** not executed. Exercises are code-reading/self-review with a checklist and a reference solution.
 
@@ -82,6 +82,8 @@ The store talks to `ProgressRepository` (`src/store/repository.ts`). Today it is
 
 ## Security and privacy
 
+- **Headers (`public/_headers`):** strict CSP for the page (no `unsafe-eval`; the inline theme script is allowed by hash, checked by `tests/unit/headers.test.ts`), a separate CSP per sandbox worker, `nosniff`, `frame-ancestors 'none'`, HSTS, Referrer-Policy and Permissions-Policy. Verified locally by serving `dist/` with these headers: JS and SQL run, and a learner-code `import('https://…')` is blocked by the worker CSP.
+- **Untrusted data:** saved progress, backups and profile packs are validated with Zod on every load (`stateSchema` in `src/store/progress.ts`). Invalid saved data is moved to a `sdet-quest:v1:corrupt-<time>` key and the app starts fresh instead of crashing. Storage-quota failures show a banner and keep the newest data in memory.
 - No backend, accounts, analytics or third-party scripts. YouTube iframes load only after a click (`youtube-nocookie.com`), or automatically if the learner opts in.
 - Markdown is rendered without raw HTML; user-entered text is rendered as text.
 - Personal data lives in a git-ignored profile pack imported into the learner's own browser; `tests/unit/privacy-and-profile.test.ts` fails the build if personal identifiers appear in `src/`.

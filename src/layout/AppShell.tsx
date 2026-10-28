@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
   BarChart3,
@@ -18,7 +18,7 @@ import { useProgress } from '@/store/progress';
 import { totalXp, levelFor } from '@/lib/xp';
 import { dueCards } from '@/lib/srs';
 import { useApplySettings, useToday } from '@/lib/hooks';
-import { storageUnavailable } from '@/store/repository';
+import { storageFull, storageUnavailable } from '@/store/repository';
 import { cx } from '@/components/ui';
 
 const NAV = [
@@ -66,8 +66,9 @@ function NavItems({ dueCount, onNavigate }: { dueCount: number; onNavigate?: () 
             <Icon size={17} aria-hidden="true" />
             <span className="flex-1">{label}</span>
             {to === '/revision' && dueCount > 0 && (
-              <span className="rounded-md bg-warn-soft px-1.5 text-[11px] font-semibold text-warn" aria-label={`${dueCount} due`}>
+              <span className="rounded-md bg-warn-soft px-1.5 text-[11px] font-semibold text-warn">
                 {dueCount}
+                <span className="sr-only"> due</span>
               </span>
             )}
           </NavLink>
@@ -82,7 +83,7 @@ function XpChip() {
   const xp = totalXp(attempts);
   const lvl = levelFor(xp);
   return (
-    <div className="rounded-xl border border-line bg-surface p-3" aria-label={`Level ${lvl.level}, ${xp} XP`}>
+    <div className="rounded-xl border border-line bg-surface p-3" role="group" aria-label={`Level ${lvl.level}, ${xp} XP`}>
       <div className="flex items-baseline justify-between">
         <span className="text-xs text-faint">Level</span>
         <span className="text-xs tabular-nums text-xp">{xp} XP</span>
@@ -108,10 +109,28 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
   const location = useLocation();
   const [noStorage] = useState(storageUnavailable);
+  const [full, setFull] = useState(storageFull);
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const firstRoute = useRef(true);
 
+  useEffect(() => {
+    const onFull = () => setFull(true);
+    window.addEventListener('sdet-quest:storage-full', onFull);
+    return () => window.removeEventListener('sdet-quest:storage-full', onFull);
+  }, []);
   useEffect(() => setOpen(false), [location.pathname]);
+  // A native modal dialog gives the mobile menu a focus trap, Escape to close and focus return for free.
+  useEffect(() => {
+    const d = dialogRef.current;
+    if (!d) return;
+    if (open && !d.open) d.showModal();
+    if (!open && d.open) d.close();
+  }, [open]);
+  // On navigation, move focus to the new page so keyboard and screen-reader users start at its content.
   useEffect(() => {
     window.scrollTo(0, 0);
+    if (firstRoute.current) firstRoute.current = false;
+    else document.getElementById('main')?.focus({ preventScroll: true });
   }, [location.pathname]);
 
   const toggleTheme = () => updateSettings({ theme: theme === 'dark' ? 'light' : 'dark' });
@@ -151,16 +170,21 @@ export function AppShell({ children }: { children: ReactNode }) {
           <button type="button" onClick={toggleTheme} className="rounded-lg p-2 text-muted hover:bg-surface-2" aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}>
             {theme === 'dark' ? <Sun size={18} aria-hidden="true" /> : <Moon size={18} aria-hidden="true" />}
           </button>
-          <button type="button" onClick={() => setOpen(true)} className="rounded-lg p-2 text-ink hover:bg-surface-2" aria-label="Open menu" aria-expanded={open} aria-controls="mobile-nav">
+          <button type="button" onClick={() => setOpen(true)} className="rounded-lg p-2 text-ink hover:bg-surface-2" aria-label="Open menu" aria-expanded={open}>
             <Menu size={20} aria-hidden="true" />
           </button>
         </div>
       </header>
 
-      {open && (
-        <div className="fixed inset-0 z-40 lg:hidden" role="dialog" aria-modal="true" aria-label="Menu">
-          <button type="button" className="absolute inset-0 bg-black/50" aria-label="Close menu" onClick={() => setOpen(false)} />
-          <nav id="mobile-nav" className="absolute inset-y-0 right-0 flex w-72 max-w-[85vw] flex-col gap-4 overflow-y-auto border-l border-line bg-elev p-4" aria-label="Main navigation">
+      <dialog
+        ref={dialogRef}
+        aria-label="Menu"
+        onClose={() => setOpen(false)}
+        onClick={(e) => e.target === e.currentTarget && setOpen(false)}
+        className="m-0 ml-auto h-dvh max-h-none w-72 max-w-[85vw] border-0 border-l border-line bg-elev p-0 text-ink backdrop:bg-black/50 lg:hidden"
+      >
+        {open && (
+          <nav className="flex h-full flex-col gap-4 overflow-y-auto p-4" aria-label="Main navigation">
             <div className="flex items-center justify-between">
               <Logo />
               <button type="button" onClick={() => setOpen(false)} className="rounded-lg p-2 text-muted hover:bg-surface-2" aria-label="Close menu">
@@ -170,14 +194,19 @@ export function AppShell({ children }: { children: ReactNode }) {
             <NavItems dueCount={dueCount} onNavigate={() => setOpen(false)} />
             <XpChip />
           </nav>
-        </div>
-      )}
+        )}
+      </dialog>
 
-      <main id="main" className="px-4 pb-16 pt-6 sm:px-6 lg:ml-60 lg:px-10 lg:pt-8">
-        <div className="mx-auto max-w-6xl">
+      <main id="main" tabIndex={-1} className="px-4 pb-16 pt-6 outline-none sm:px-6 lg:ml-60 lg:px-10 lg:pt-8">
+        <div className="max-w-7xl">
           {noStorage && (
             <div className="mb-4 rounded-lg border border-warn/30 bg-warn-soft px-3 py-2 text-[13px] text-ink" role="alert">
               Browser storage is blocked (private mode or site settings), so progress will be lost when you close this tab. Export a backup from Settings.
+            </div>
+          )}
+          {full && (
+            <div className="mb-4 rounded-lg border border-bad/30 bg-bad-soft px-3 py-2 text-[13px] text-ink" role="alert">
+              Browser storage is full, so new progress is only kept until you close this tab. Export a backup from Settings now.
             </div>
           )}
           {children}

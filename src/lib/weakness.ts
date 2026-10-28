@@ -20,7 +20,7 @@ export function applyAttempt(
 
   if (attempt.score < WEAK_BELOW) {
     const next: Weakness = existing
-      ? { ...existing, mistakes: existing.mistakes + 1, status: 'active', passes: 0, resolvedAt: undefined, score: attempt.score }
+      ? { ...existing, mistakes: existing.mistakes + 1, status: 'active', passes: 0, lastPassDay: undefined, resolvedAt: undefined, score: attempt.score }
       : {
           id,
           skill: attempt.skill,

@@ -97,7 +97,7 @@ export const questionSchema = z
     answer: z.array(z.string()).min(1),
     explanation: z.string().min(10),
     /** Why a specific wrong option is tempting; shown when the learner picks it. */
-    misconceptions: z.record(z.string()).optional(),
+    misconceptions: z.record(z.string(), z.string()).optional(),
     difficulty: z.number().int().min(1).max(5),
     followUp: z.string().optional(),
   })

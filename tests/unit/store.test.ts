@@ -12,7 +12,32 @@ describe('progress reducer', () => {
   it('does not queue a weakness for a correct first answer', () => {
     const s = recordAttemptReducer(initialState(), { itemId: 'q1', itemType: 'question', skill: 'api', score: 1, topic: 't' });
     expect(Object.keys(s.weaknesses)).toHaveLength(0);
-    expect(s.srs['question:q1'].step).toBe(1);
+    // New cards start on the 1-day rung.
+    expect(s.srs['question:q1']).toMatchObject({ step: 0, reviews: 0 });
+  });
+
+  const day = (d: string) => new Date(`${d}T10:00:00`);
+  const input = { itemId: 'q1', itemType: 'question' as const, skill: 'api' as const, topic: 't' };
+
+  it('re-answering before a card is due neither climbs the ladder nor earns the review bonus', () => {
+    let s = recordAttemptReducer(initialState(), { ...input, score: 1 }, day('2026-10-01'));
+    s = recordAttemptReducer(s, { ...input, score: 1 }, day('2026-10-01'));
+    expect(s.srs['question:q1'].step).toBe(0);
+    expect(s.attempts.some((a) => a.detail?.review)).toBe(false);
+  });
+
+  it('a due card climbs on a pass and is marked as a review', () => {
+    let s = recordAttemptReducer(initialState(), { ...input, score: 1 }, day('2026-10-01'));
+    s = recordAttemptReducer(s, { ...input, score: 1 }, day('2026-10-02'));
+    expect(s.srs['question:q1']).toMatchObject({ step: 1, due: '2026-10-05' });
+    expect(s.attempts[1].detail?.review).toBe(true);
+  });
+
+  it('a clear miss resets the card even when it is not due', () => {
+    let s = recordAttemptReducer(initialState(), { ...input, score: 1 }, day('2026-10-01'));
+    s = recordAttemptReducer(s, { ...input, score: 1 }, day('2026-10-02'));
+    s = recordAttemptReducer(s, { ...input, score: 0 }, day('2026-10-03'));
+    expect(s.srs['question:q1']).toMatchObject({ step: 0, lapses: 1, due: '2026-10-04' });
   });
 });
 
@@ -29,6 +54,14 @@ describe('persistence', () => {
     expect(back.attempts).toHaveLength(1);
     expect(() => parseBackup('{"hello":1}')).toThrow();
     expect(() => parseBackup(JSON.stringify({ state: { ...s, schemaVersion: 99 } }))).toThrow(/newer/);
+  });
+
+  it('rejects corrupted collections that would crash rendering', () => {
+    const s = initialState();
+    expect(() => parseBackup(JSON.stringify({ state: { ...s, attempts: null } }))).toThrow();
+    expect(() => parseBackup(JSON.stringify({ state: { ...s, stories: [{ id: 1 }] } }))).toThrow();
+    expect(() => parseBackup(JSON.stringify({ state: { ...s, bookmarks: 'x' } }))).toThrow();
+    expect(() => migrate({ attempts: [{ itemId: 'q', itemType: 'nope', skill: 'api', score: 1, correct: true, at: 'x', id: 'a' }] }, 1)).toThrow();
   });
 });
 

@@ -24,21 +24,28 @@ function safeLocalStorage(): Storage | null {
 }
 
 const memory = new Map<string, string>();
+let quotaExceeded = false;
+
+/** True once a save failed because browser storage is full. */
+export const storageFull = () => quotaExceeded;
 
 export const localRepository: ProgressRepository = {
   kind: 'local',
   getItem: (name) => {
-    const ls = safeLocalStorage();
-    return ls ? ls.getItem(name) : (memory.get(name) ?? null);
+    // After a quota failure the newest data only lives in memory; prefer it over the stale stored copy.
+    return memory.get(name) ?? safeLocalStorage()?.getItem(name) ?? null;
   },
   setItem: (name, value) => {
     const ls = safeLocalStorage();
     if (ls) {
       try {
         ls.setItem(name, value);
+        memory.delete(name);
         return;
       } catch {
-        // Quota exceeded: keep working in memory for this session.
+        // Quota exceeded: keep working in memory for this session and tell the UI.
+        quotaExceeded = true;
+        window.dispatchEvent(new Event('sdet-quest:storage-full'));
       }
     }
     memory.set(name, value);

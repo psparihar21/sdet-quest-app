@@ -115,7 +115,7 @@ export function StepDiagram({ spec, label }: { spec: DiagramSpec; label: string 
             const d = bend ? `M${p1.x},${p1.y} Q${cx1},${cy1} ${p2.x},${p2.y}` : `M${p1.x},${p1.y} L${p2.x},${p2.y}`;
             return (
               <g key={`${e.from}>${e.to}`}>
-                <path d={d} fill="none" stroke={on ? 'var(--accent)' : 'var(--border-strong)'} strokeWidth={on ? 2.2 : 1.3} markerEnd={`url(#${on ? 'arrow-on-' : 'arrow-'}${markerId})`} className={cx(on && !reduced && 'flow-line')} />
+                <path d={d} fill="none" stroke={on ? 'var(--accent)' : 'var(--text-faint)'} strokeWidth={on ? 2.2 : 1.3} markerEnd={`url(#${on ? 'arrow-on-' : 'arrow-'}${markerId})`} className={cx(on && !reduced && 'flow-line')} />
                 {e.label && (
                   <text x={bend ? cx1 : mx} y={(bend ? cy1 : my) - 6} fontSize="10.5" textAnchor="middle" fill={on ? 'var(--accent-strong)' : 'var(--text-faint)'}>
                     {e.label}
@@ -131,7 +131,7 @@ export function StepDiagram({ spec, label }: { spec: DiagramSpec; label: string 
               const w = n.w ?? 120;
               const h = n.h ?? 44;
               return (
-                <g key={n.id} style={{ transition: 'opacity .3s' }} opacity={s.nodes.length && !on ? 0.55 : 1}>
+                <g key={n.id} style={{ transition: 'opacity .3s' }} opacity={s.nodes.length && !on ? 0.8 : 1}>
                   <rect x={n.x} y={n.y} width={w} height={h} rx={9} fill={on ? 'var(--accent-soft)' : 'var(--surface-2)'} stroke={on ? 'var(--accent)' : 'var(--border)'} strokeWidth={on ? 2 : 1} />
                   <text x={n.x + w / 2} y={n.y + (n.sub ? h / 2 - 3 : h / 2 + 4)} fontSize="12.5" textAnchor="middle" fill="var(--text)" fontWeight={600}>
                     {n.label}

@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { CheckCircle2, Lightbulb, Play, RotateCcw, XCircle } from 'lucide-react';
 import type { JavaProblem, JsProblem, Problem, SqlProblem } from '@/content/types';
 import { useProgress } from '@/store/progress';
@@ -173,10 +173,29 @@ function ResultTable({ r, caption }: { r: QueryResult; caption: string }) {
   );
 }
 
+/** Saves code drafts 400 ms after typing stops (and on unmount), instead of rewriting storage on every keystroke. */
+function useDraftSaver() {
+  const save = useProgress((s) => s.saveDraft);
+  const pending = useRef<{ id: string; code: string } | null>(null);
+  const timer = useRef<ReturnType<typeof setTimeout>>();
+  const flush = useCallback(() => {
+    clearTimeout(timer.current);
+    if (pending.current) save(pending.current.id, pending.current.code);
+    pending.current = null;
+  }, [save]);
+  useEffect(() => flush, [flush]);
+  return (id: string, code: string) => {
+    pending.current = { id, code };
+    clearTimeout(timer.current);
+    timer.current = setTimeout(flush, 400);
+  };
+}
+
 function useAttemptRecorder(problem: Problem) {
   const recordAttempt = useProgress((s) => s.recordAttempt);
   return (pass: boolean, fraction: number, revealedEarly: boolean, detail: Record<string, unknown>) => {
-    const raw = pass ? 1 : fraction;
+    // Anything short of all tests passing stays below the 0.7 "correct" line.
+    const raw = pass ? 1 : Math.min(fraction, 0.69);
     recordAttempt({
       itemId: problem.id,
       itemType: 'problem',
@@ -191,7 +210,7 @@ function useAttemptRecorder(problem: Problem) {
 
 function JsWorkspace({ problem }: { problem: JsProblem }) {
   const draft = useProgress((s) => s.drafts[problem.id]);
-  const saveDraft = useProgress((s) => s.saveDraft);
+  const saveDraft = useDraftSaver();
   const [code, setCode] = useState(draft ?? problem.starter);
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<RunResult | null>(null);
@@ -201,10 +220,13 @@ function JsWorkspace({ problem }: { problem: JsProblem }) {
 
   const run = async () => {
     setRunning(true);
-    const r = await runJs(code, problem.functionName, problem.tests, problem.unordered);
-    setResult(r);
-    setRunning(false);
-    record(r.ok, r.total ? r.passed / r.total : 0, revealedEarly, { passed: r.passed, total: r.total });
+    try {
+      const r = await runJs(code, problem.functionName, problem.tests, problem.unordered);
+      setResult(r);
+      record(r.ok, r.total ? r.passed / r.total : 0, revealedEarly, { passed: r.passed, total: r.total });
+    } finally {
+      setRunning(false);
+    }
   };
 
   return (
@@ -234,7 +256,7 @@ function JsWorkspace({ problem }: { problem: JsProblem }) {
 
 function SqlWorkspace({ problem }: { problem: SqlProblem }) {
   const draft = useProgress((s) => s.drafts[problem.id]);
-  const saveDraft = useProgress((s) => s.saveDraft);
+  const saveDraft = useDraftSaver();
   const [code, setCode] = useState(draft ?? problem.starter);
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<SqlRunResult | null>(null);
@@ -244,10 +266,13 @@ function SqlWorkspace({ problem }: { problem: SqlProblem }) {
 
   const run = async (check: boolean) => {
     setRunning(true);
-    const r = await runSql(code, check ? problem.expectedQuery : undefined, problem.orderMatters);
-    setResult({ ...r, ok: check ? r.ok : false, reason: check ? r.reason : undefined, expected: check ? r.expected : undefined });
-    setRunning(false);
-    if (check) record(r.ok, 0, revealedEarly, { reason: r.reason, error: r.error });
+    try {
+      const r = await runSql(code, check ? problem.expectedQuery : undefined, problem.orderMatters);
+      setResult({ ...r, ok: check ? r.ok : false, reason: check ? r.reason : undefined, expected: check ? r.expected : undefined });
+      if (check) record(r.ok, 0, revealedEarly, { reason: r.reason, error: r.error });
+    } finally {
+      setRunning(false);
+    }
   };
 
   return (
@@ -301,7 +326,7 @@ function SqlWorkspace({ problem }: { problem: SqlProblem }) {
 
 function JavaWorkspace({ problem }: { problem: JavaProblem }) {
   const draft = useProgress((s) => s.drafts[problem.id]);
-  const saveDraft = useProgress((s) => s.saveDraft);
+  const saveDraft = useDraftSaver();
   const [code, setCode] = useState(draft ?? problem.starter);
   const [checked, setChecked] = useState<number[]>([]);
   const [submitted, setSubmitted] = useState(false);
