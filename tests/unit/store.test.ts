@@ -100,3 +100,19 @@ describe('recommendations', () => {
     expect(new Set(titles).size).toBe(titles.length);
   });
 });
+
+describe('hostile backups', () => {
+  it('a __proto__ key in a backup never reaches Object.prototype', () => {
+    const s = initialState();
+    const raw = JSON.stringify({ app: 'sdet-quest', state: s }).replace('"notes":{}', '"notes":{"__proto__":"polluted","constructor":"x"}');
+    expect(raw).toContain('__proto__');
+    try {
+      parseBackup(raw);
+    } catch {
+      // Rejecting the file is fine too; the point is that nothing leaks into every object.
+    }
+    expect(({} as Record<string, unknown>).polluted).toBeUndefined();
+    expect(Object.prototype.toString.call({})).toBe('[object Object]');
+    expect(typeof {}.constructor).toBe('function');
+  });
+});

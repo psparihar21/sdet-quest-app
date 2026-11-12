@@ -5,6 +5,7 @@ import {
   BookOpen,
   Code2,
   FolderKanban,
+  GalleryVerticalEnd,
   LayoutDashboard,
   Menu,
   MessagesSquare,
@@ -23,6 +24,7 @@ import { cx } from '@/components/ui';
 
 const NAV = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
+  { to: '/feed', label: 'Feed', icon: GalleryVerticalEnd },
   { to: '/learn', label: 'Curriculum', icon: BookOpen },
   { to: '/lab', label: 'Coding Lab', icon: Code2 },
   { to: '/arena', label: 'Interview Arena', icon: MessagesSquare },

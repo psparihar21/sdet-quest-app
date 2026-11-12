@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test';
 // Layout guard: at every common width, no page scrolls sideways and no element pokes out past the viewport.
 const WIDTHS = [375, 768, 1024, 1440, 1920];
 const PAGES = [
-  '/', '/learn', '/learn/m01', '/learn/m01/m01-l1', '/learn/m04/m04-l1', '/learn/m11/m11-l2', '/learn/m22/m22-l2',
+  '/', '/feed', '/learn', '/learn/m01', '/learn/m01/m01-l1', '/learn/m04/m04-l1', '/learn/m11/m11-l2', '/learn/m22/m22-l2',
   '/lab', '/lab/js-test-order', '/lab/sql-balance-check', '/lab/java-driver-factory',
   '/arena', '/arena/dsa', '/revision', '/projects', '/progress', '/settings',
 ];

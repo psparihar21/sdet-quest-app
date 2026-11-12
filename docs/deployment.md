@@ -37,8 +37,17 @@ Alternative without Git: `npm run build`, then `npx wrangler pages deploy dist` 
 GitHub Pages has no rewrite rules, so deep links like `/learn/m01` need the `404.html` trick. A project site is served under `/<repo-name>/`:
 
 1. Name the repo `sdet-quest` (or change `--base` in the `build:gh-pages` script to match).
-2. `npm run build:gh-pages` builds with base `/sdet-quest/` and writes `dist/404.html`.
-3. Deploy `dist/` with the official `actions/upload-pages-artifact` + `actions/deploy-pages` workflow (Settings → Pages → Source: GitHub Actions).
+2. The repo must be public (GitHub Pages on a private repo needs a paid plan).
+3. Repo → Settings → Pages → Source: **GitHub Actions**.
+4. Push to `main`. `.github/workflows/pages.yml` lints, typechecks, runs the unit tests, runs `npm run build:gh-pages` and deploys `dist/`.
+
+`npm run build:gh-pages` builds with base `/sdet-quest/`, adds the page security policy as a `<meta>` tag (GitHub Pages ignores `public/_headers`) and writes `dist/404.html`. See [security.md](security.md) for what this host cannot enforce.
+
+To try that build locally (PowerShell; Git Bash rewrites the `/sdet-quest/` argument):
+
+```powershell
+npx.cmd vite preview --base=/sdet-quest/ --port 4174
+```
 
 Note: with the 404 fallback, deep links return HTTP 404 status but render the app — fine for people, less ideal for crawlers.
 
@@ -47,6 +56,15 @@ Note: with the 404 fallback, deep links return HTTP 404 status but render the ap
 The free plan is credit-based (300 credits listed on the pricing page; production deploys cost 15 credits each and bandwidth draws on the same credits). It works (`public/_redirects` is Netlify's format) but leaves less headroom for frequent deploys than Cloudflare Pages.
 
 Build command `npm run build`, publish directory `dist`.
+
+## Install on a phone
+
+The app is installable and works offline once it has been opened online one time.
+
+- **Android (Chrome):** open the site → menu (⋮) → **Add to Home screen** → Install.
+- **iPhone (Safari):** open the site → Share → **Add to Home Screen**.
+
+It opens full screen on the scroll feed. Updates arrive automatically the next time it is opened online.
 
 ## Pre-deployment checklist
 

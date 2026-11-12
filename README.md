@@ -8,6 +8,7 @@ An interactive, gamified learning platform for **SDET 3 / Senior SDET / QA Autom
 - 529 curriculum topics traced to content ([docs/requirements-traceability.md](docs/requirements-traceability.md))
 - 18 interactive visualizations, including the test pyramid, HashMap buckets, race conditions, WebDriver flow, BrowserContext isolation, the CI pipeline, Kafka, the agent loop, MCP and sharding
 - 40 curated YouTube videos, each checked to exist and to allow embedding
+- A phone **scroll feed**: swipe through lesson cards, quizzes and flashcards instead of reels. Installable and works offline.
 - No account, no server, no paid APIs. Everything runs in the browser.
 
 ## Contents
@@ -76,6 +77,7 @@ The scores and self-ratings seed your weakness queue and revision schedule. See 
 
 ## How to use it
 
+0. **On a phone, open the Feed and scroll.** Install it from the browser menu ("Add to Home screen") so it opens like an app; see [docs/deployment.md](docs/deployment.md#install-on-a-phone).
 1. **Start on the Dashboard.** It recommends one next step, in this order: revision that is due, a lesson to re-learn after repeated mistakes, a lesson to continue, then the next lesson.
 2. **Work through a lesson.** Read, step through the diagram, answer the questions, then do the practice problem and the interview drill. Answers stay hidden until you have attempted them. In a quiz, a round marker means **one answer** and a square marker means **multiple answers**. After you check an answer, open the interviewer follow-up to see a strong model answer.
 3. **Practise in the Coding Lab.** JS/TS solutions run against hidden test cases. SQL runs against a fresh copy of an HRMS practice database on every run.
@@ -87,6 +89,7 @@ The scores and self-ratings seed your weakness queue and revision schedule. See 
 
 | Page | What it does |
 |---|---|
+| Feed | Scroll one card at a time: revision that is due, then weak spots, then new lesson cards with quizzes and flashcards mixed in. Built for a phone |
 | Dashboard | Recommended next step, daily quests, readiness estimates per role, weakest areas, recent performance |
 | Curriculum | Search and filter 24 modules by area, level and status |
 | Learning Studio | Each lesson follows Learn → Visualize → Understand → Practice → Build → Interview; answers are hidden until you attempt |
@@ -163,7 +166,8 @@ docs/           architecture, roadmap, traceability, deployment, progress
 - [docs/architecture.md](docs/architecture.md): stack, data model, sandboxing, evaluation and persistence
 - [docs/curriculum-roadmap.md](docs/curriculum-roadmap.md): modules, levels, learning order and progression
 - [docs/requirements-traceability.md](docs/requirements-traceability.md): every topic mapped to its module, assessments and status
-- [docs/deployment.md](docs/deployment.md): free hosting options and a step-by-step checklist
+- [docs/deployment.md](docs/deployment.md): free hosting options, phone install and a step-by-step checklist
+- [docs/security.md](docs/security.md): protections, the latest review and known limits
 - [docs/progress.md](docs/progress.md): what is done, verified, partial and planned
 - [docs/source-inventory.md](docs/source-inventory.md): the source material this was built from
 

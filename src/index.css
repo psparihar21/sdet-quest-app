@@ -211,6 +211,7 @@
     border: 1px solid var(--border);
     padding: 0.1em 0.35em;
     border-radius: 6px;
+    overflow-wrap: anywhere;
   }
   .prose-lesson pre {
     background: var(--code-bg);

@@ -73,8 +73,16 @@ E2E scenarios cover: start-here path, wrong answer → weakness queue → surviv
 - **Accessibility:** no automated axe scan or screen-reader session yet.
 - **Bundle:** all content ships in the main chunk; per-module splitting would speed first load.
 - **Progress is per browser/device**; export backups to move it.
-- **Not deployed.** No hosting account was used; see deployment.md.
-- **Not committed.** A git repository is initialised with nothing committed yet.
+- **Not deployed yet.** The GitHub Pages workflow is in place; it needs the repo to be public and Pages enabled.
+- **No sync yet.** Automatic phone/laptop sync (Supabase) is planned as the next stage.
+
+## Phone scroll feed (2026-11-13)
+
+- **Feed** (`/feed`): one card per screen. Revision that is due comes first, then weak spots, then new lesson material in course order, with an unseen flashcard mixed in every few cards. Coding, interview and build steps appear as a card that opens the full page.
+- Reading a lesson step to its end marks it done; answers are graded exactly as on the lesson page.
+- **Installable and offline** (service worker, manifest, icons).
+- **GitHub Pages** workflow and a build that carries its security policy as a meta tag.
+- Verified: 119 unit tests, 54 E2E tests (desktop and Pixel 7), and a nine-point smoke test of the GitHub Pages build. Security review recorded in security.md.
 
 ## Next steps
 

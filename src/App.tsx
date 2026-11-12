@@ -3,6 +3,7 @@ import { Route, Routes } from 'react-router-dom';
 import { AppShell } from './layout/AppShell';
 import { Dashboard } from './pages/Dashboard';
 
+const Feed = lazy(() => import('./pages/Feed'));
 const Curriculum = lazy(() => import('./pages/Curriculum'));
 const ModulePage = lazy(() => import('./pages/ModulePage'));
 const LessonPage = lazy(() => import('./pages/LessonPage'));
@@ -58,6 +59,7 @@ export function App() {
         <Suspense fallback={<Loading />}>
           <Routes>
             <Route path="/" element={<Dashboard />} />
+            <Route path="/feed" element={<Feed />} />
             <Route path="/learn" element={<Curriculum />} />
             <Route path="/learn/:moduleId" element={<ModulePage />} />
             <Route path="/learn/:moduleId/:lessonId" element={<LessonPage />} />
