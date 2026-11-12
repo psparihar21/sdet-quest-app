@@ -16,6 +16,8 @@ concurrency:
 
 jobs:
   deploy:
+    # GitHub Pages is free only for public repos; a private copy of this repo skips the deploy.
+    if: ${{ !github.event.repository.private }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment:
@@ -32,6 +34,9 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build:gh-pages
+        env:
+          # A project site is served under /<repo-name>/.
+          VITE_BASE_PATH: /${{ github.event.repository.name }}/
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

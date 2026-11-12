@@ -16,7 +16,7 @@
     "check": "npm run lint && npm run typecheck && npm run test && npm run build",
     "docs:trace": "vite-node scripts/gen-traceability.ts",
     "verify:videos": "node scripts/verify-videos.mjs",
-    "build:gh-pages": "tsc --noEmit -p tsconfig.json && vite build --base=/sdet-quest/ && node scripts/spa-404.mjs"
+    "build:gh-pages": "tsc --noEmit -p tsconfig.json && vite build && node scripts/spa-404.mjs"
   },
   "dependencies": {
     "@codemirror/lang-java": "^6.0.2",

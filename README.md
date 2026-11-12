@@ -134,7 +134,7 @@ Vite 6, React 18, TypeScript, Tailwind CSS v4, React Router 7, Zustand (persiste
 | `npm run check` | Lint + typecheck + unit tests + build |
 | `npm run docs:trace` | Regenerate the requirements traceability matrix from the content |
 | `npm run verify:videos` | Re-verify all YouTube videos via oEmbed |
-| `npm run build:gh-pages` | Build for GitHub Pages under `/sdet-quest/` with SPA fallback |
+| `npm run build:gh-pages` | Build for GitHub Pages (base path from `VITE_BASE_PATH`) with the security policy as a meta tag and an SPA fallback |
 
 The first time you run E2E tests on a new machine, install the browser with `npx playwright install chromium`.
 

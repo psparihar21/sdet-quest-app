@@ -36,17 +36,17 @@ Alternative without Git: `npm run build`, then `npx wrangler pages deploy dist` 
 
 GitHub Pages has no rewrite rules, so deep links like `/learn/m01` need the `404.html` trick. A project site is served under `/<repo-name>/`:
 
-1. Name the repo `sdet-quest` (or change `--base` in the `build:gh-pages` script to match).
+1. Any repo name works: the workflow builds with the base path `/<repo-name>/`.
 2. The repo must be public (GitHub Pages on a private repo needs a paid plan).
 3. Repo → Settings → Pages → Source: **GitHub Actions**.
 4. Push to `main`. `.github/workflows/pages.yml` lints, typechecks, runs the unit tests, runs `npm run build:gh-pages` and deploys `dist/`.
 
-`npm run build:gh-pages` builds with base `/sdet-quest/`, adds the page security policy as a `<meta>` tag (GitHub Pages ignores `public/_headers`) and writes `dist/404.html`. See [security.md](security.md) for what this host cannot enforce.
+`npm run build:gh-pages` builds with the base path from `VITE_BASE_PATH` (the workflow sets it), adds the page security policy as a `<meta>` tag (GitHub Pages ignores `public/_headers`) and writes `dist/404.html`. See [security.md](security.md) for what this host cannot enforce.
 
-To try that build locally (PowerShell; Git Bash rewrites the `/sdet-quest/` argument):
+To try that build locally (PowerShell; Git Bash rewrites arguments that start with `/`):
 
 ```powershell
-npx.cmd vite preview --base=/sdet-quest/ --port 4174
+$env:VITE_BASE_PATH = '/sdet-quest-app/'; npm.cmd run build:gh-pages; npx.cmd vite preview --base=/sdet-quest-app/ --port 4174
 ```
 
 Note: with the 404 fallback, deep links return HTTP 404 status but render the app — fine for people, less ideal for crawlers.
