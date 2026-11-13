@@ -25,11 +25,11 @@ Reviewed by the `ecc:security-reviewer` and `ecc:react-reviewer` agents plus han
 ## Sync (optional)
 
 - Off unless the build is given a Supabase project URL and public key, and nothing is loaded or sent until the learner signs in. The URL must be a `*.supabase.co` address or sync stays off.
-- Sign-in is a one-time code sent by email. No password exists.
+- Sign-in is a one-time link sent by email, returning to the app's own address (the only redirect the project allows). No password exists.
 - The key in the build is the public one. Row-level security limits each account to its own row, and a size check caps a row at 3 MB.
 - Progress downloaded from the cloud gets the same schema validation as an imported backup before it is merged.
 - The page policy allows connections to `https://*.supabase.co` and nowhere else outside the site.
-- **Not yet verified against a live project:** the row-level security rules (one account must not read or write another's row; signed-out access must fail).
+- **Verified on the live project (2026-11-13):** signed-out requests read nothing, cannot insert (refused by row-level security) and update nothing. **Not yet verified:** a full sign-in and two-device merge, and that one signed-in account cannot touch another's row (needs two real email accounts).
 - Anyone who opens the public site can request a sign-in code for their own email and store their own row in the project. Turn off new sign-ups in Supabase once your own account exists.
 
 ## Known limits

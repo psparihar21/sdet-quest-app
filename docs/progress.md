@@ -100,7 +100,7 @@ The first feed read as laptop screens on a phone. It was redesigned from a produ
 - **No more "open the full page" cards.** Coding, interview drills and build tasks are done inside the feed in portrait.
 - **Tap-to-code:** order the lines, pick the missing syntax, then write the logic with tap-in syntax chips. JavaScript and SQL run the real tests in the browser sandbox; Java is self-reviewed. Generated from each problem's reference solution, so all 35 problems have it.
 - **Step completion** for quizzes, coding, interviews and build tasks comes from stored attempts, by the same rules as the lesson page.
-- **Sync (code complete, not yet switched on):** optional sign-in with an emailed one-time code; progress from two devices is merged so nothing answered on either is lost. Needs a Supabase project URL and public key at build time. Not tested against a live project yet.
+- **Sync (code complete, not yet switched on):** optional sign-in with an emailed one-time link (the free Supabase plan does not allow the email text to be edited, so a typed code is not possible); progress from two devices is merged so nothing answered on either is lost. Switched on for the public site through repository variables. Signed-out access is verified as refused; a real sign-in and two-device merge still need the owner to click the emailed link.
 - Verified: 135 unit tests and 62 end-to-end tests.
 - **Known limits:** the first time through a problem is guided (the order card shows the solution's lines), so that first pass is scaffolded practice; the unguided test is when the problem returns for revision. A reset on one device is undone by the next sync from another device.
 

@@ -31,7 +31,7 @@ let client: Promise<SupabaseClient> | undefined;
 // The client library is fetched only when sync is actually used.
 const supabase = () =>
   (client ??= import('@supabase/supabase-js').then(({ createClient }) =>
-    createClient(URL!, KEY!, { auth: { storageKey: AUTH_KEY, persistSession: true, autoRefreshToken: true, detectSessionInUrl: false } }),
+    createClient(URL!, KEY!, { auth: { storageKey: AUTH_KEY, persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } }),
   ));
 
 const localState = (): ProgressState => JSON.parse(exportState()).state;
@@ -84,19 +84,18 @@ export async function syncNow(): Promise<void> {
   }
 }
 
-/** Email a one-time sign-in code. No password is ever created or stored. */
-export async function sendCode(email: string): Promise<void> {
+/**
+ * Email a one-time sign-in link. No password is ever created or stored. The link returns to the
+ * app's own address (the project's Site URL) with the session in the URL fragment.
+ */
+export async function sendLink(email: string): Promise<void> {
   const sb = await supabase();
   const { error } = await sb.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
   if (error) throw new Error(message(error));
 }
 
-export async function verifyCode(email: string, code: string): Promise<void> {
-  const sb = await supabase();
-  const { error } = await sb.auth.verifyOtp({ email, token: code, type: 'email' });
-  if (error) throw new Error(message(error));
-  await syncNow();
-}
+/** True when this page load is the return from a sign-in link (successful or expired). */
+const returning = () => /(^|[#&])(access_token|error_description)=/.test(location.hash);
 
 /** Stops syncing on this device. Progress stays on the device and in the cloud copy. */
 export async function signOut(): Promise<void> {
@@ -117,6 +116,19 @@ export function startSync(): void {
       return false;
     }
   };
+  if (returning()) {
+    // An expired or reused link comes back with an error instead of a session.
+    const failed = new URLSearchParams(location.hash.slice(1)).get('error_description');
+    if (failed) useSync.setState({ error: `${failed}. Request a new link.` });
+    // The client reads the session out of the URL and removes it; then show the result in Settings.
+    void supabase()
+      .then((sb) => sb.auth.getSession())
+      .then(() => {
+        history.replaceState(null, '', `${import.meta.env.BASE_URL}settings`);
+        window.dispatchEvent(new PopStateEvent('popstate'));
+        return syncNow();
+      });
+  }
   const soon = (ms: number) => {
     // Without a saved session there is nothing to sync, and the client library is never downloaded.
     if (!signedIn()) return;

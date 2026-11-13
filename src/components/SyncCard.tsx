@@ -1,15 +1,14 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { RefreshCw } from 'lucide-react';
-import { sendCode, signOut, syncConfigured, syncNow, useSync, verifyCode } from '@/store/sync';
+import { sendLink, signOut, syncConfigured, syncNow, useSync } from '@/store/sync';
 import { Button, Card, Notice, SectionTitle } from './ui';
 
 const input = 'h-10 w-full rounded-lg border border-line bg-surface-2 px-3 text-sm text-ink';
 
-/** Settings section for syncing progress between devices. Signing in uses a one-time code sent by email. */
+/** Settings section for syncing progress between devices. Signing in uses a one-time link sent by email. */
 export function SyncCard() {
   const { email: account, busy, lastSynced, error } = useSync();
   const [email, setEmail] = useState('');
-  const [code, setCode] = useState('');
   const [sent, setSent] = useState(false);
   const [working, setWorking] = useState(false);
   const [problem, setProblem] = useState<string>();
@@ -53,8 +52,8 @@ export function SyncCard() {
           </div>
         </div>
       ) : !sent ? (
-        <form className="space-y-3" onSubmit={(e) => run(e, async () => (await sendCode(email.trim()), setSent(true)))}>
-          <p className="text-sm text-muted">Sign in with the same email on your phone and laptop. You get a one-time code by email; there is no password.</p>
+        <form className="space-y-3" onSubmit={(e) => run(e, async () => (await sendLink(email.trim()), setSent(true)))}>
+          <p className="text-sm text-muted">Sign in with the same email on your phone and laptop. You get a one-time sign-in link by email; there is no password.</p>
           <div>
             <label htmlFor="sync-email" className="text-sm font-medium text-ink">
               Email
@@ -62,29 +61,19 @@ export function SyncCard() {
             <input id="sync-email" type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} className={`${input} mt-1 max-w-sm`} />
           </div>
           <Button variant="primary" type="submit" disabled={working}>
-            {working ? 'Sending…' : 'Email me a code'}
+            {working ? 'Sending…' : 'Email me a sign-in link'}
           </Button>
         </form>
       ) : (
-        <form className="space-y-3" onSubmit={(e) => run(e, () => verifyCode(email.trim(), code.trim()))}>
-          <p className="text-sm text-muted">
-            A code was sent to <span className="font-medium text-ink">{email}</span>. It can take a minute; check spam too.
+        <div className="space-y-3">
+          <p className="text-sm text-ink" role="status">
+            A sign-in link was sent to <span className="font-medium">{email}</span>. Open it <strong>on this device</strong>; it brings you back here signed in.
           </p>
-          <div>
-            <label htmlFor="sync-code" className="text-sm font-medium text-ink">
-              Code from the email
-            </label>
-            <input id="sync-code" required inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6,8}" value={code} onChange={(e) => setCode(e.target.value)} className={`${input} mt-1 max-w-40 tracking-widest`} />
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Button variant="primary" type="submit" disabled={working}>
-              {working ? 'Checking…' : 'Sign in and sync'}
-            </Button>
-            <Button variant="ghost" onClick={() => setSent(false)}>
-              Use another email
-            </Button>
-          </div>
-        </form>
+          <p className="text-xs text-muted">It can take a minute; check spam too. The link works once and expires after an hour. Only a couple of emails can be sent per hour.</p>
+          <Button variant="ghost" onClick={() => setSent(false)}>
+            Use another email
+          </Button>
+        </div>
       )}
       {(problem ?? error) && (
         <div className="mt-3">
