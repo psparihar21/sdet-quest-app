@@ -17,7 +17,7 @@ export default defineConfig({
       // An external register file: the page CSP allows no inline scripts.
       injectRegister: 'script',
       includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
-      workbox: { globPatterns: ['**/*.{js,css,html,svg,png,wasm}'], maximumFileSizeToCacheInBytes: 3_000_000 },
+      workbox: { globPatterns: ['**/*.{js,css,html,svg,png,wasm,woff2}'], maximumFileSizeToCacheInBytes: 3_000_000 },
       manifest: {
         name: 'SDET Quest',
         short_name: 'SDET Quest',

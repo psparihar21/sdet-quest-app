@@ -41,6 +41,12 @@ Each lesson moves through **Learn → Visualize → Understand → Practice → 
 | **Light theme** | **Mobile** |
 | ![Dashboard in the light theme](docs/screenshots/dashboard-light.jpg) | <img src="docs/screenshots/mobile-lesson.jpg" alt="Lesson page on a phone" width="260"> |
 
+**The phone feed**
+
+| Lesson card | Table as a slide deck | One-tap quiz | Throw the card: true or false | Flashcard |
+|---|---|---|---|---|
+| ![Feed lesson card](docs/screenshots/feed-lesson.jpg) | ![Feed table deck](docs/screenshots/feed-table.jpg) | ![Feed quiz with a stamp](docs/screenshots/feed-quiz.jpg) | ![Feed true or false swipe](docs/screenshots/feed-swipe.jpg) | ![Feed flashcard](docs/screenshots/feed-flashcard.jpg) |
+
 The screenshots use the public example profile ([`profile.example.json`](profile.example.json)), not real personal data. To regenerate them, see [Scripts](#scripts).
 
 ## Quick start
@@ -89,7 +95,7 @@ The scores and self-ratings seed your weakness queue and revision schedule. See 
 
 | Page | What it does |
 |---|---|
-| Feed | Scroll one card at a time: revision that is due, then weak spots, then new lesson cards with quizzes and flashcards mixed in. Built for a phone |
+| Feed | A full-screen reel: one idea per card, one swipe per card. Revision that is due comes first, then weak spots, then new lesson cards. Quizzes lock in on one tap, true/false is a card you throw left or right, flashcards flip, tables become sideways slide decks |
 | Dashboard | Recommended next step, daily quests, readiness estimates per role, weakest areas, recent performance |
 | Curriculum | Search and filter 24 modules by area, level and status |
 | Learning Studio | Each lesson follows Learn → Visualize → Understand → Practice → Build → Interview; answers are hidden until you attempt |
@@ -168,6 +174,7 @@ docs/           architecture, roadmap, traceability, deployment, progress
 - [docs/requirements-traceability.md](docs/requirements-traceability.md): every topic mapped to its module, assessments and status
 - [docs/deployment.md](docs/deployment.md): free hosting options, phone install and a step-by-step checklist
 - [docs/security.md](docs/security.md): protections, the latest review and known limits
+- [docs/feed-design.md](docs/feed-design.md): product brief and design rules for the phone feed
 - [docs/progress.md](docs/progress.md): what is done, verified, partial and planned
 - [docs/source-inventory.md](docs/source-inventory.md): the source material this was built from
 

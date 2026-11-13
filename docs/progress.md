@@ -84,6 +84,18 @@ E2E scenarios cover: start-here path, wrong answer → weakness queue → surviv
 - **GitHub Pages** workflow and a build that carries its security policy as a meta tag.
 - Verified: 119 unit tests, 54 E2E tests (desktop and Pixel 7), and a nine-point smoke test of the GitHub Pages build. Security review recorded in security.md.
 
+## Feed rebuilt as a reel (2026-11-13)
+
+The first feed read as laptop screens on a phone. It was redesigned from a product brief and design direction (feed-design.md) and rebuilt.
+
+- **Scroll:** full screen with no app chrome; every card is exactly one screen and one swipe lands on the next card. A mouse-wheel notch, arrow keys and on-screen buttons also move one card.
+- **Reading:** one idea per card (about 380 characters), large type, coloured paper per lesson step, key terms highlighted. Tables become a sideways slide deck.
+- **Quizzes:** one tap locks in a single answer; true/false is a card thrown left or right (with buttons as the alternative); multi-select uses "Lock in"; a stamp shows the result; a combo counter tracks right answers in a row.
+- **Flashcards** flip over and are self-graded.
+- **Reviews:** React review (accidental answer on a cancelled drag, table parsing, focus loss, re-render cost: fixed) and accessibility review (contrast on one paper, progress-bar visibility, focus rings, screen-reader announcements, reduced motion, short screens: fixed).
+- **Not verified:** swipe feel on a real phone (tested with a real browser engine at phone size and with scripted tests, not on a device). Old iOS Safari versions are untested.
+- **Known limit:** every card stays mounted for the session, so a very long session uses more memory.
+
 ## Next steps
 
 1. Import `profile.local.json` in Settings and follow the suggested order in curriculum-roadmap.md (start with M1 lesson 1).

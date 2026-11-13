@@ -21,11 +21,22 @@ interface Base {
   /** Short context line shown above the card. */
   label: string;
   step?: FeedStep;
+  /** Lesson the card belongs to, for saving it and opening the full lesson. */
+  moduleId?: string;
+  lessonId?: string;
+}
+
+/** Position of a card inside its lesson step, e.g. part 2 of 4. */
+interface Part {
+  part: number;
+  parts: number;
 }
 
 export type FeedCard = Base &
   (
-    | { kind: 'learn'; title: string; body: string }
+    | ({ kind: 'learn'; title: string; body: string } & Part)
+    /** A markdown table, shown as one row per slide. */
+    | ({ kind: 'table'; title: string; head: string[]; rows: string[][] } & Part)
     | { kind: 'visual'; title: string; vizId: string; caption: string }
     | { kind: 'video'; title: string; video: Video }
     | { kind: 'question'; id: string }
@@ -37,7 +48,15 @@ export type FeedCard = Base &
 const MAX_DUE = 10;
 const MAX_WEAK = 5;
 const FLASHCARD_EVERY = 5;
-const PART_CHARS = 600;
+// One idea per phone screen at reading size.
+const PART_CHARS = 380;
+
+/** A markdown table, with or without a heading line directly above it. */
+const isTable = (block: string) => {
+  const lines = block.split('\n');
+  if (/^#{1,6} /.test(lines[0]) && lines.length > 1) lines.shift();
+  return lines.every((l) => l.trim().startsWith('|'));
+};
 
 /** Split a lesson body into screen-sized parts at headings and paragraph breaks, never inside a code fence. */
 export function splitBody(body: string, max = PART_CHARS): string[] {
@@ -55,17 +74,39 @@ export function splitBody(body: string, max = PART_CHARS): string[] {
 
   const parts: string[] = [];
   let part = '';
+  let afterTable = false;
   for (const b of blocks) {
     const heading = /^#{1,6} /.test(b);
     // A heading alone is not a part: it always travels with the block after it.
     const onlyHeading = /^#{1,6} [^\n]*$/.test(part);
-    if (part && !onlyHeading && (heading || part.length + b.length > max)) {
+    // A table gets a card of its own (it becomes a slide deck).
+    if (part && (afterTable || (!onlyHeading && (heading || isTable(b) || part.length + b.length > max)))) {
       parts.push(part);
       part = b;
     } else part = part ? `${part}\n\n${b}` : b;
+    afterTable = isTable(b);
   }
   if (part) parts.push(part);
   return parts;
+}
+
+/** A part that is just a markdown table (optionally under a heading), as cells. */
+export function parseTable(part: string): { title?: string; head: string[]; rows: string[][] } | undefined {
+  const lines = part.split('\n').filter((l) => l.trim());
+  const title = /^#{1,6} /.test(lines[0] ?? '') ? lines.shift()!.replace(/^#{1,6} /, '').trim() : undefined;
+  if (lines.length < 3 || !lines.every((l) => l.trim().startsWith('|')) || !/^\|[\s:|-]+\|?$/.test(lines[1].trim())) return undefined;
+  // Split on unescaped pipes. The trailing pipe is optional in markdown. (No regex lookbehind: older iOS Safari cannot parse it.)
+  const cells = (l: string) =>
+    l
+      .trim()
+      .replace(/\\\|/g, '\uE000')
+      .replace(/^\|/, '')
+      .replace(/\|$/, '')
+      .split('|')
+      .map((c) => c.trim().replace(/\uE000/g, '|'));
+  const head = cells(lines[0]);
+  const rows = lines.slice(2).map(cells).filter((r) => r.length === head.length);
+  return rows.length ? { title, head, rows } : undefined;
 }
 
 /**
@@ -88,7 +129,7 @@ export function buildFeed(state: ProgressState, opts: { today?: string; limit?: 
 
   for (const c of dueCards(state.srs, today).slice(0, MAX_DUE)) {
     const base = { key: `due:${c.id}`, why: 'due' as const, label: 'Due for revision' };
-    if (c.itemType === 'question' && getQuestion(c.itemId)) push({ ...base, kind: 'question', id: c.itemId }, c.id);
+    if (c.itemType === 'question' && getQuestion(c.itemId)) push({ ...base, ...locate('question', c.itemId), kind: 'question', id: c.itemId }, c.id);
     else if (c.itemType === 'flashcard' && getFlashcard(c.itemId)) push({ ...base, kind: 'flashcard', id: c.itemId }, c.id);
     else {
       const title = c.itemType === 'problem' ? getProblem(c.itemId)?.title : c.itemType === 'interview' ? getInterview(c.itemId)?.prompt : undefined;
@@ -100,7 +141,7 @@ export function buildFeed(state: ProgressState, opts: { today?: string; limit?: 
     const base = { key: `weak:${w.id}`, why: 'weak' as const, label: 'Weak spot' };
     const type = weaknessItemType(w.id);
     if (w.itemId && type === 'question' && getQuestion(w.itemId)) {
-      push({ ...base, kind: 'question', id: w.itemId }, cardId('question', w.itemId));
+      push({ ...base, ...locate('question', w.itemId), kind: 'question', id: w.itemId }, cardId('question', w.itemId));
       continue;
     }
     const loc = w.itemId ? locate(type, w.itemId) : undefined;
@@ -121,7 +162,8 @@ export function buildFeed(state: ProgressState, opts: { today?: string; limit?: 
       const total = l.sections.length;
       const opens: FeedCard[] = [];
       let fed = false;
-      const add = (c: FeedCard, item?: string) => {
+      const add = (card: FeedCard, item?: string) => {
+        const c = { ...card, moduleId: m.id, lessonId: l.id };
         if (!push(c, item)) return;
         fed = true;
         fresh += 1;
@@ -135,7 +177,11 @@ export function buildFeed(state: ProgressState, opts: { today?: string; limit?: 
         const step = (last: boolean): FeedStep => ({ lessonId: l.id, index, total, last });
         if (s.kind === 'learn') {
           const parts = splitBody(s.body);
-          parts.forEach((body, p) => add({ key: `${key}:${p}`, why: 'new', label, step: step(p === parts.length - 1), kind: 'learn', title: s.title, body }));
+          parts.forEach((body, p) => {
+            const base = { key: `${key}:${p}`, why: 'new' as const, label, step: step(p === parts.length - 1), part: p + 1, parts: parts.length };
+            const table = parseTable(body);
+            add(table ? { ...base, kind: 'table', title: table.title ?? s.title, head: table.head, rows: table.rows } : { ...base, kind: 'learn', title: s.title, body });
+          });
         } else if (s.kind === 'visual') add({ key, why: 'new', label, step: step(true), kind: 'visual', title: s.title, vizId: s.vizId, caption: s.caption });
         else if (s.kind === 'video') add({ key, why: 'new', label, step: step(true), kind: 'video', title: s.title, video: s.video });
         else if (s.kind === 'check') {
@@ -143,7 +189,7 @@ export function buildFeed(state: ProgressState, opts: { today?: string; limit?: 
           ids.forEach((id, q) => add({ key: `${key}:${id}`, why: 'new', label, step: step(q === ids.length - 1), kind: 'question', id }, cardId('question', id)));
         } else {
           const text = s.kind === 'practice' ? 'Hands-on problem. It opens in the full editor.' : s.kind === 'interview' ? 'Interview drill. Answer it on the lesson page for rubric feedback.' : 'Build task with acceptance criteria.';
-          opens.push({ key, why: 'new', label, kind: 'open', title: s.title, text, to: `/learn/${m.id}/${l.id}`, cta: 'Open lesson' });
+          opens.push({ key, why: 'new', label, moduleId: m.id, lessonId: l.id, kind: 'open', title: s.title, text, to: `/learn/${m.id}/${l.id}`, cta: 'Open lesson' });
         }
       });
       // Full-page steps ride along with a lesson that still has scrollable material; alone they would repeat forever.

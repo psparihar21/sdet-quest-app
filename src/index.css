@@ -300,3 +300,268 @@
   outline: 2px solid var(--focus);
   outline-offset: -2px;
 }
+
+/* ───────── Reel feed: full-screen paper cards (docs/feed-design.md) ───────── */
+.reel {
+  scroll-snap-type: y mandatory;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+.reel::-webkit-scrollbar {
+  display: none;
+}
+.reel-card {
+  height: 100dvh;
+  scroll-snap-align: start;
+  /* One swipe, one card: a fast flick never skips past the next card. */
+  scroll-snap-stop: always;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 100dvh;
+  /* No double-tap zoom: taps answer at once and a double tap saves the lesson. */
+  touch-action: manipulation;
+}
+.reel-display {
+  font-family: 'Bricolage Grotesque Variable', ui-sans-serif, system-ui, sans-serif;
+  font-variation-settings: 'wdth' 88;
+  letter-spacing: -0.02em;
+  line-height: 1.04;
+  /* Not the `text-wrap` shorthand: that turns wrapping back on and defeats truncation. */
+  text-wrap-style: balance;
+}
+
+/* Very short screens (landscape phones, heavy zoom): cards grow with their content instead of scrolling inside. */
+@media (max-height: 520px) {
+  .reel {
+    scroll-snap-type: y proximity;
+  }
+  .reel-card {
+    height: auto;
+    min-height: 100dvh;
+    content-visibility: visible;
+  }
+  .reel-card > [data-inner] {
+    overflow: visible;
+  }
+}
+
+/* A sheet of coloured paper. The app tokens are remapped so lesson text, code and follow-ups inherit the sheet. */
+.paper {
+  background: var(--paper);
+  color: var(--on);
+  --text: var(--on);
+  --text-muted: color-mix(in srgb, var(--on) 74%, var(--paper));
+  --text-faint: color-mix(in srgb, var(--on) 62%, var(--paper));
+  --surface: color-mix(in srgb, var(--on) 6%, var(--paper));
+  --surface-2: color-mix(in srgb, var(--on) 11%, var(--paper));
+  --border: color-mix(in srgb, var(--on) 24%, var(--paper));
+  --border-strong: color-mix(in srgb, var(--on) 45%, var(--paper));
+  --code-bg: color-mix(in srgb, var(--on) 9%, var(--paper));
+  --accent: var(--on);
+  --accent-strong: var(--on);
+  --accent-ink: var(--paper);
+  --accent-soft: color-mix(in srgb, var(--on) 12%, var(--paper));
+  --focus: var(--on);
+}
+.paper-ink {
+  --paper: #141312;
+  --on: #f5efe4;
+  --mark: #ffd23f;
+  --mark-on: #ffd23f;
+}
+.paper-cream {
+  --paper: #f5efe4;
+  --on: #161514;
+  --mark: #ffd23f;
+  --mark-on: #161514;
+}
+.paper-cobalt {
+  --paper: #2340d6;
+  --on: #ffffff;
+  --mark: #ffd23f;
+  --mark-on: #ffd23f;
+}
+.paper-forest {
+  --paper: #103d2f;
+  --on: #eef6e8;
+  --mark: #b9f26b;
+  --mark-on: #b9f26b;
+}
+.paper-sun {
+  --paper: #ffd23f;
+  --on: #161514;
+  --mark: #ffffff;
+  --mark-on: #161514;
+}
+.paper-clay {
+  --paper: #ee6a42;
+  --on: #161514;
+  --mark: #ffe9a8;
+  --mark-on: #161514;
+  /* The default 74% mix is only 4.0:1 on this paper. */
+  --text-muted: color-mix(in srgb, var(--on) 90%, var(--paper));
+  --text-faint: color-mix(in srgb, var(--on) 90%, var(--paper));
+}
+
+/* Lesson text at reading size, key terms marked like a highlighter. */
+.reel-prose.prose-lesson {
+  font-size: 18.5px;
+  line-height: 1.55;
+  max-width: none;
+  text-wrap: pretty;
+}
+.reel-prose.prose-lesson strong {
+  color: var(--mark-on);
+  font-weight: 700;
+}
+.paper-cream .reel-prose.prose-lesson strong,
+.paper-sun .reel-prose.prose-lesson strong,
+.paper-clay .reel-prose.prose-lesson strong {
+  background: linear-gradient(transparent 58%, var(--mark) 58%);
+}
+.reel-prose.prose-lesson li {
+  margin-block: 0.35em;
+}
+
+/* Hard-edged exam-paper controls. */
+.tile {
+  border: 2px solid var(--on);
+  background: #ffffff;
+  color: #161514;
+  border-radius: 14px;
+  box-shadow: 4px 4px 0 var(--on);
+  transition-property: transform, box-shadow, background-color;
+  transition-duration: 120ms;
+  transition-timing-function: ease-out;
+}
+.tile:not(:disabled):active,
+.tile[aria-checked='true']:not(:disabled) {
+  transform: translate(3px, 3px);
+  box-shadow: 1px 1px 0 var(--on);
+}
+.tile[aria-checked='true']:not(:disabled) {
+  background: #ffd23f;
+}
+.tile:disabled {
+  box-shadow: none;
+  transform: translate(4px, 4px);
+}
+.tile[data-state='correct'] {
+  background: #b9f26b;
+}
+.tile[data-state='wrong'] {
+  background: #ff9d8a;
+  animation: shake 0.4s ease-in-out;
+}
+.tile[data-state='idle']:disabled {
+  opacity: 0.7;
+}
+.tile:focus-visible,
+.reel-btn:focus-visible {
+  outline: 3px solid var(--on);
+  outline-offset: 3px;
+}
+.reel-btn {
+  transition-property: transform, background-color, opacity;
+  transition-duration: 120ms;
+}
+.reel-btn:active {
+  transform: scale(0.96);
+}
+
+.stamp {
+  display: inline-block;
+  border: 3px solid currentColor;
+  border-radius: 8px;
+  padding: 2px 12px 3px;
+  transform: rotate(-7deg);
+  animation: stamp 0.32s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+@keyframes stamp {
+  from {
+    opacity: 0;
+    transform: rotate(-7deg) scale(2.4);
+  }
+  to {
+    opacity: 1;
+    transform: rotate(-7deg) scale(1);
+  }
+}
+@keyframes shake {
+  20% {
+    translate: -6px 0;
+  }
+  40% {
+    translate: 6px 0;
+  }
+  60% {
+    translate: -4px 0;
+  }
+  80% {
+    translate: 3px 0;
+  }
+}
+@keyframes pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  30% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+  70% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1);
+  }
+}
+.animate-pop {
+  animation: pop 0.7s ease-out both;
+}
+
+/* Flashcard that really turns over. */
+.flip {
+  perspective: 1200px;
+}
+.flip-inner {
+  display: grid;
+  transform-style: preserve-3d;
+  transition: transform 0.45s cubic-bezier(0.3, 0.9, 0.3, 1);
+}
+.flip-inner[data-flipped='true'] {
+  transform: rotateY(180deg);
+}
+.flip-face {
+  grid-area: 1 / 1;
+  backface-visibility: hidden;
+}
+.flip-back {
+  transform: rotateY(180deg);
+}
+/* After the turn the 3D transform is dropped, so the answer is drawn as crisp flat text. */
+.flip-inner[data-settled='true'] {
+  transform: none;
+  transition: none;
+}
+.flip-inner[data-settled='true'] .flip-back {
+  transform: none;
+}
+.flip-inner[data-settled='true'] .flip-front {
+  visibility: hidden;
+}
+
+/* Sideways deck for table rows. */
+.deck {
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+}
+.deck::-webkit-scrollbar {
+  display: none;
+}
+.deck > * {
+  scroll-snap-align: center;
+}

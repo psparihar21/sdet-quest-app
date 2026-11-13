@@ -1,5 +1,5 @@
 import { MODULES } from '@/content';
-import { answeredCheckSteps, buildFeed, splitBody } from '@/lib/feed';
+import { answeredCheckSteps, buildFeed, parseTable, splitBody } from '@/lib/feed';
 import { initialState, recordAttemptReducer } from '@/store/progress';
 
 const today = '2026-11-13';
@@ -15,6 +15,21 @@ describe('splitBody', () => {
     expect(parts.join('\n\n')).toBe(body);
   });
 
+  it('gives a table its own part and parses it into cells', () => {
+    const body = ['Intro text.', '', '## Layers', '', '| Layer | Speed |', '|---|---|', '| **Unit** | ms |', '| UI | a \\| b |', '', 'After the table.'].join('\n');
+    const parts = splitBody(body);
+    expect(parts).toHaveLength(3);
+    expect(parseTable(parts[0])).toBeUndefined();
+    expect(parseTable(parts[1])).toEqual({ title: 'Layers', head: ['Layer', 'Speed'], rows: [['**Unit**', 'ms'], ['UI', 'a | b']] });
+    expect(parts[2]).toBe('After the table.');
+  });
+
+  it('handles a heading glued to its table and rows without a trailing pipe', () => {
+    const parts = splitBody(['## Layers', '| Layer | Speed', '|---|---', '| Unit | ms', '', 'After.'].join('\n'));
+    expect(parts).toHaveLength(2);
+    expect(parseTable(parts[0])).toEqual({ title: 'Layers', head: ['Layer', 'Speed'], rows: [['Unit', 'ms']] });
+  });
+
   it('splits long text at paragraph breaks', () => {
     const para = 'word '.repeat(80).trim();
     expect(splitBody([para, para, para].join('\n\n'))).toHaveLength(3);
@@ -24,7 +39,8 @@ describe('splitBody', () => {
 describe('buildFeed', () => {
   it('starts a new learner on the first lesson, with unique keys', () => {
     const feed = buildFeed(initialState(), { today });
-    expect(feed[0]).toMatchObject({ why: 'new', kind: 'learn' });
+    expect(feed[0]).toMatchObject({ why: 'new', kind: 'learn', part: 1, moduleId: MODULES[0].id, lessonId: MODULES[0].lessons[0].id });
+    expect(feed.some((c) => c.kind === 'table' && c.rows.length > 0)).toBe(true);
     expect(feed[0].step?.lessonId).toBe(MODULES[0].lessons[0].id);
     expect(new Set(feed.map((c) => c.key)).size).toBe(feed.length);
     expect(feed.some((c) => c.kind === 'question')).toBe(true);

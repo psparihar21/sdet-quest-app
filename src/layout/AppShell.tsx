@@ -137,6 +137,22 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   const toggleTheme = () => updateSettings({ theme: theme === 'dark' ? 'light' : 'dark' });
 
+  // The feed is immersive: full screen, no sidebar or top bar. Storage warnings still show, as they mean lost progress.
+  if (location.pathname === '/feed') {
+    return (
+      <div className="min-h-dvh bg-black">
+        <main id="main" tabIndex={-1} className="outline-none">
+          {(noStorage || full) && (
+            <p role="alert" className="fixed inset-x-0 top-0 z-40 bg-warn px-3 py-1.5 text-center text-[12.5px] font-medium text-black">
+              {full ? 'Browser storage is full' : 'Browser storage is blocked'}: progress is not being saved. Export a backup from Settings.
+            </p>
+          )}
+          {children}
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-dvh bg-bg">
       <a href="#main" className="skip-link">
