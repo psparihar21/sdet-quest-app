@@ -1,6 +1,5 @@
 import { useRef, useState } from 'react';
-import { ArrowRight, RotateCw } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { RotateCw } from 'lucide-react';
 import { getFlashcard } from '@/content';
 import { SKILL_LABELS } from '@/content/types';
 import { useProgress } from '@/store/progress';
@@ -126,20 +125,6 @@ export function FlipCard({ id }: { id: string }) {
         </div>
       )}
       <p role="status" className="mt-5 text-center text-[14px] font-semibold empty:hidden">{graded && 'Scheduled. It comes back when you are about to forget it.'}</p>
-    </div>
-  );
-}
-
-/** A step that needs the full page (code editor, typed interview answer, build task) or a due item on the revision page. */
-export function OpenCard({ title, text, to, cta }: { title: string; text: string; to: string; cta: string }) {
-  return (
-    <div>
-      <Kicker>Needs the full screen</Kicker>
-      <h2 className="reel-display mt-3 text-[32px] font-extrabold">{plain(title)}</h2>
-      <p className="mt-3 text-[17px] leading-relaxed">{text}</p>
-      <Link to={to} className="tile reel-display mt-6 inline-flex min-h-12 items-center gap-2 px-5 py-3 text-[16px] font-extrabold uppercase">
-        {cta} <ArrowRight size={18} aria-hidden="true" />
-      </Link>
     </div>
   );
 }

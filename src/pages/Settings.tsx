@@ -4,6 +4,7 @@ import { exportState, parseBackup, useProgress } from '@/store/progress';
 import { profilePackSchema } from '@/store/profilePack';
 import { useDocumentTitle } from '@/lib/hooks';
 import { Button, Card, Notice, PageHeader, SectionTitle, cx } from '@/components/ui';
+import { SyncCard } from '@/components/SyncCard';
 
 function download(name: string, text: string) {
   const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
@@ -133,9 +134,11 @@ export default function SettingsPage() {
         <p className="mt-1 text-xs text-faint">A target, not a streak to protect. Missing a day has no penalty.</p>
       </Card>
 
+      <SyncCard />
+
       <Card aria-labelledby="data">
         <SectionTitle id="data">Your data</SectionTitle>
-        <p className="text-sm text-muted">Progress is stored in this browser's local storage on this device. It does not sync between devices or browsers. Export a backup regularly.</p>
+        <p className="text-sm text-muted">Progress is stored in this browser's local storage on this device. Unless you sign in to sync above, it stays on this device. Export a backup regularly.</p>
         <div className="mt-3 flex flex-wrap gap-2">
           <Button onClick={() => download(`sdet-quest-backup-${new Date().toISOString().slice(0, 10)}.json`, exportState())}>
             <Download size={14} aria-hidden="true" /> Export backup

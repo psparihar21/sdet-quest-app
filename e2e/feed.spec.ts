@@ -97,3 +97,51 @@ test('the app installs a service worker and opens offline', async ({ page, conte
   await page.goto('/revision');
   await expect(page.getByRole('heading', { name: 'Revision Center' })).toBeVisible();
 });
+
+test('coding happens inside the feed: order the lines, fill the gaps, write and run', async ({ page }) => {
+  await page.goto('/feed');
+  const cards = cardsOf(page);
+  const stage = (name: string) => page.getByTestId(`code-js-boundary-values-${name}`);
+  for (let i = 0; i < 10 && !(await stage('write').count()); i++) await swipeTo(cards.last());
+
+  // 1. Tap the lines into order. The assembled code then really runs.
+  await swipeTo(cards.filter({ has: stage('order') }));
+  const pile = stage('order').getByRole('group', { name: 'Lines to place' }).getByRole('button');
+  for (const line of [/^function boundaryValues/, /const candidates/, /return \[/, /^}$/]) await pile.filter({ hasText: line }).first().click();
+  await expect(stage('order').getByRole('status')).toContainText('5/5 tests passed');
+
+  // 2. Pick the missing syntax; a wrong pick is not accepted.
+  await swipeTo(cards.filter({ has: stage('gaps') }));
+  const options = stage('gaps').getByRole('group').getByRole('button');
+  await options.filter({ hasNotText: /^const$/ }).first().click();
+  await expect(stage('gaps').getByRole('status')).toContainText('Try another');
+  await options.getByText('const', { exact: true }).click();
+  await options.getByText('Set', { exact: true }).click();
+  await expect(stage('gaps').getByRole('status')).toContainText('All 2 filled');
+
+  // 3. Write it with tap-in syntax, and run the real tests.
+  await swipeTo(cards.filter({ has: stage('write') }));
+  const editor = stage('write').getByRole('textbox');
+  await stage('write').getByRole('button', { name: 'Run the tests' }).click();
+  await expect(stage('write').getByText(/\d\/5 tests passed/)).toBeVisible();
+  await editor.fill('function boundaryValues(min, max) {\n  const c = [min - 1, min, min + 1, max - 1, max, max + 1];\n  return ');
+  await stage('write').getByRole('button', { name: '[...x]' }).click();
+  await expect(editor).toHaveValue(/return \[\.\.\.\]$/);
+  await editor.fill('function boundaryValues(min, max) {\n  const c = [min - 1, min, min + 1, max - 1, max, max + 1];\n  return [...new Set(c)].sort((a, b) => a - b);\n}');
+  await stage('write').getByRole('button', { name: 'Run the tests' }).click();
+  await expect(stage('write').getByText('5/5 tests passed')).toBeVisible();
+  // Running it finished the lesson's practice step, without leaving the feed.
+  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('sdet-quest:v1') ?? '{}').state?.lessons?.['m01-l4']?.done ?? [])).toContain(3);
+  await expect(page).toHaveURL(/\/feed$/);
+});
+
+test('interview drills and build tasks are answered in the feed, with no "open the full page" cards', async ({ page }) => {
+  await page.goto('/feed');
+  const iv = page.locator('[data-testid^="interview-"]').first();
+  await swipeTo(cardsOf(page).filter({ has: iv }).first());
+  await iv.getByLabel(/Your answer/).fill('The pyramid is inverted. I would move business rules down to unit and API tests, keep a few critical journeys as E2E, quarantine flaky tests with an owner, and report CI time and flaky rate weekly. For example, target CI under 15 minutes. The trade-off is developer time.');
+  await iv.getByRole('button', { name: 'Submit answer' }).click();
+  await expect(iv.getByText('Technical correctness')).toBeVisible();
+  await expect(page.getByTestId('build-task').first()).toBeAttached();
+  await expect(page.getByText('Needs the full screen')).toHaveCount(0);
+});

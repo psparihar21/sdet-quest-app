@@ -1,7 +1,8 @@
 import { FLASHCARDS, MODULES, getFlashcard, getInterview, getProblem, getQuestion } from '@/content';
-import { lessonPath, locate, moduleForSkill } from '@/content/locate';
+import { locate } from '@/content/locate';
 import type { Video } from '@/content/types';
 import type { ProgressState } from '@/store/types';
+import { makeGaps, orderBlocks } from './codeDrill';
 import { toDay } from './dates';
 import { isUnlocked, weaknessItemType } from './recommend';
 import { cardId, dueCards } from './srs';
@@ -41,9 +42,14 @@ export type FeedCard = Base &
     | { kind: 'video'; title: string; video: Video }
     | { kind: 'question'; id: string }
     | { kind: 'flashcard'; id: string }
-    /** Work that needs the full page (code editor, typed interview answer, build task). */
-    | { kind: 'open'; title: string; text: string; to: string; cta: string }
+    /** One stage of tap-to-code practice on a problem: order the lines, fill the gaps, then write and run it. */
+    | { kind: 'code'; id: string; stage: CodeStage }
+    | { kind: 'interview'; id: string }
+    /** A build task, self-reviewed against its acceptance criteria. `index` is its step in the lesson. */
+    | { kind: 'build'; title: string; task: string; acceptance: string[]; index: number }
   );
+
+export type CodeStage = 'order' | 'gaps' | 'write';
 
 const MAX_DUE = 10;
 const MAX_WEAK = 5;
@@ -131,10 +137,9 @@ export function buildFeed(state: ProgressState, opts: { today?: string; limit?: 
     const base = { key: `due:${c.id}`, why: 'due' as const, label: 'Due for revision' };
     if (c.itemType === 'question' && getQuestion(c.itemId)) push({ ...base, ...locate('question', c.itemId), kind: 'question', id: c.itemId }, c.id);
     else if (c.itemType === 'flashcard' && getFlashcard(c.itemId)) push({ ...base, kind: 'flashcard', id: c.itemId }, c.id);
-    else {
-      const title = c.itemType === 'problem' ? getProblem(c.itemId)?.title : c.itemType === 'interview' ? getInterview(c.itemId)?.prompt : undefined;
-      if (title) push({ ...base, kind: 'open', title, text: c.itemType === 'problem' ? 'A coding problem is due. It needs the editor.' : 'An interview question is due. Answer it on the revision page.', to: '/revision', cta: 'Open revision' }, c.id);
-    }
+    // Revision is recall: a due problem goes straight to writing it, without the guided warm-ups.
+    else if (c.itemType === 'problem' && getProblem(c.itemId)) push({ ...base, ...locate('problem', c.itemId), kind: 'code', id: c.itemId, stage: 'write' }, c.id);
+    else if (c.itemType === 'interview' && getInterview(c.itemId)) push({ ...base, ...locate('interview', c.itemId), kind: 'interview', id: c.itemId }, c.id);
   }
 
   for (const w of activeQueue(state.weaknesses).slice(0, MAX_WEAK)) {
@@ -144,9 +149,9 @@ export function buildFeed(state: ProgressState, opts: { today?: string; limit?: 
       push({ ...base, ...locate('question', w.itemId), kind: 'question', id: w.itemId }, cardId('question', w.itemId));
       continue;
     }
-    const loc = w.itemId ? locate(type, w.itemId) : undefined;
-    const to = loc ? lessonPath(loc) : `/learn/${moduleForSkill(w.skill)?.id ?? ''}`;
-    push({ ...base, kind: 'open', title: w.topic, text: w.itemId ? `Missed ${w.mistakes} time${w.mistakes === 1 ? '' : 's'}. Go back to where it is taught.` : 'Flagged as a gap. Work through the module that teaches it.', to, cta: 'Open lesson' });
+    if (w.itemId && type === 'problem' && getProblem(w.itemId)) push({ ...base, ...locate('problem', w.itemId), kind: 'code', id: w.itemId, stage: 'write' }, cardId('problem', w.itemId));
+    else if (w.itemId && type === 'interview' && getInterview(w.itemId)) push({ ...base, ...locate('interview', w.itemId), kind: 'interview', id: w.itemId }, cardId('interview', w.itemId));
+    // Skill-level gaps (from a diagnostic or self-rating) have no single card: the course order below covers them.
   }
 
   const tried = new Set(state.attempts.filter((a) => a.itemType === 'question').map((a) => a.itemId));
@@ -160,12 +165,9 @@ export function buildFeed(state: ProgressState, opts: { today?: string; limit?: 
       if (prog?.completedAt) continue;
       const label = `Module ${m.number} · ${l.title}`;
       const total = l.sections.length;
-      const opens: FeedCard[] = [];
-      let fed = false;
       const add = (card: FeedCard, item?: string) => {
         const c = { ...card, moduleId: m.id, lessonId: l.id };
         if (!push(c, item)) return;
-        fed = true;
         fresh += 1;
         if (fresh % FLASHCARD_EVERY) return;
         const f = FLASHCARDS.find((x) => x.moduleId === m.id && !state.srs[cardId('flashcard', x.id)] && !items.has(cardId('flashcard', x.id)));
@@ -187,13 +189,16 @@ export function buildFeed(state: ProgressState, opts: { today?: string; limit?: 
         else if (s.kind === 'check') {
           const ids = s.questionIds.filter((id) => getQuestion(id) && !tried.has(id));
           ids.forEach((id, q) => add({ key: `${key}:${id}`, why: 'new', label, step: step(q === ids.length - 1), kind: 'question', id }, cardId('question', id)));
-        } else {
-          const text = s.kind === 'practice' ? 'Hands-on problem. It opens in the full editor.' : s.kind === 'interview' ? 'Interview drill. Answer it on the lesson page for rubric feedback.' : 'Build task with acceptance criteria.';
-          opens.push({ key, why: 'new', label, moduleId: m.id, lessonId: l.id, kind: 'open', title: s.title, text, to: `/learn/${m.id}/${l.id}`, cta: 'Open lesson' });
-        }
+        } else if (s.kind === 'practice') {
+          const p = getProblem(s.problemId);
+          if (!p) return;
+          // Guided the first time: put the lines in order, pick the missing syntax, then write the logic.
+          const stages: CodeStage[] = [...(orderBlocks(p.solution.code).length >= 3 ? (['order'] as const) : []), ...(makeGaps(p.solution.code, p.kind, p.id).gaps.length ? (['gaps'] as const) : []), 'write'];
+          stages.forEach((stage) => add({ key: `${key}:${stage}`, why: 'new', label, step: step(stage === 'write'), kind: 'code', id: p.id, stage }, stage === 'write' ? cardId('problem', p.id) : undefined));
+        } else if (s.kind === 'interview') {
+          if (getInterview(s.interviewId)) add({ key, why: 'new', label, step: step(true), kind: 'interview', id: s.interviewId }, cardId('interview', s.interviewId));
+        } else add({ key, why: 'new', label, step: step(true), kind: 'build', title: s.title, task: s.task, acceptance: s.acceptance, index });
       });
-      // Full-page steps ride along with a lesson that still has scrollable material; alone they would repeat forever.
-      if (fed) opens.forEach((c) => push(c));
       if (out.length >= end) return out;
     }
   }
@@ -201,18 +206,27 @@ export function buildFeed(state: ProgressState, opts: { today?: string; limit?: 
 }
 
 /**
- * Check steps whose questions were all answered somewhere else (revision, a mixed quiz) but
- * never marked done. The feed has no card left to show for them, so it completes them itself.
+ * Steps that are finished by answering, not by reading, and whose work is already stored:
+ * every question of a check answered, a problem attempted, an interview answered, a build task
+ * self-reviewed. It does not matter where that happened (the feed, a lesson page, revision),
+ * so the feed completes them from the stored attempts, by the same rules as the lesson page.
  */
-export function answeredCheckSteps(state: ProgressState): Omit<FeedStep, 'last'>[] {
-  const tried = new Set(state.attempts.filter((a) => a.itemType === 'question').map((a) => a.itemId));
+export function answeredSteps(state: ProgressState): Omit<FeedStep, 'last'>[] {
+  const has = (type: string) => new Set(state.attempts.filter((a) => a.itemType === type).map((a) => a.itemId));
+  const tried = has('question');
+  const [problems, interviews, builds] = [has('problem'), has('interview'), has('build')];
   const out: Omit<FeedStep, 'last'>[] = [];
   for (const m of MODULES)
     for (const l of m.lessons)
       l.sections.forEach((s, index) => {
-        if (s.kind !== 'check' || state.lessons[l.id]?.done.includes(index)) return;
-        const ids = s.questionIds.filter((id) => getQuestion(id));
-        if (ids.length && ids.every((id) => tried.has(id))) out.push({ lessonId: l.id, index, total: l.sections.length });
+        if (state.lessons[l.id]?.done.includes(index)) return;
+        const ids = s.kind === 'check' ? s.questionIds.filter((id) => getQuestion(id)) : [];
+        const done =
+          (s.kind === 'check' && ids.length > 0 && ids.every((id) => tried.has(id))) ||
+          (s.kind === 'practice' && problems.has(s.problemId)) ||
+          (s.kind === 'interview' && interviews.has(s.interviewId)) ||
+          (s.kind === 'build' && builds.has(`${l.id}#${index}`));
+        if (done) out.push({ lessonId: l.id, index, total: l.sections.length });
       });
   return out;
 }

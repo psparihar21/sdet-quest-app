@@ -7,6 +7,7 @@ import { runSql } from '@/lib/sandbox/runSql';
 import type { RunResult } from '@/lib/sandbox/harness';
 import type { QueryResult, SqlRunResult } from '@/lib/sandbox/sqlCompare';
 import { SQL_SCHEMA_SUMMARY } from '@/lib/sandbox/sqlSeed';
+import { useAttemptRecorder } from '@/lib/useAttemptRecorder';
 import { Markdown } from './Markdown';
 import { Badge, Button, Notice, cx } from './ui';
 
@@ -188,23 +189,6 @@ function useDraftSaver() {
     pending.current = { id, code };
     clearTimeout(timer.current);
     timer.current = setTimeout(flush, 400);
-  };
-}
-
-function useAttemptRecorder(problem: Problem) {
-  const recordAttempt = useProgress((s) => s.recordAttempt);
-  return (pass: boolean, fraction: number, revealedEarly: boolean, detail: Record<string, unknown>) => {
-    // Anything short of all tests passing stays below the 0.7 "correct" line.
-    const raw = pass ? 1 : Math.min(fraction, 0.69);
-    recordAttempt({
-      itemId: problem.id,
-      itemType: 'problem',
-      skill: problem.skill,
-      moduleId: problem.moduleId,
-      score: revealedEarly ? Math.min(raw, 0.5) : raw,
-      topic: problem.title,
-      detail: { ...detail, revealedEarly },
-    });
   };
 }
 

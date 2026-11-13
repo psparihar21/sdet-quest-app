@@ -2,11 +2,14 @@ import '@fontsource-variable/bricolage-grotesque/wdth.css';
 import { createContext, memo, useCallback, useContext, useEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { BookOpen, Bookmark, ChevronDown, ChevronUp, ChevronsUp, Flame, X } from 'lucide-react';
-import { getQuestion } from '@/content';
-import { answeredCheckSteps, buildFeed, type FeedCard } from '@/lib/feed';
+import { getInterview, getQuestion } from '@/content';
+import { answeredSteps, buildFeed, type FeedCard } from '@/lib/feed';
 import { useDocumentTitle, useReducedMotion } from '@/lib/hooks';
 import { useProgress } from '@/store/progress';
-import { FlipCard, LearnCard, OpenCard, TableDeck } from '@/components/feed/ReelCards';
+import { BuildTask } from '@/components/BuildTask';
+import { CodeDrill } from '@/components/feed/CodeDrill';
+import { FlipCard, LearnCard, TableDeck } from '@/components/feed/ReelCards';
+import { InterviewRunner } from '@/components/InterviewRunner';
 import { ReelQuestion } from '@/components/feed/ReelQuestion';
 import { VideoEmbed } from '@/components/VideoEmbed';
 import { cx } from '@/components/ui';
@@ -20,17 +23,18 @@ const WHY = { due: 'Due for revision', weak: 'Weak spot', new: 'New' } as const;
 // Lesson cards rotate through these; one lesson step keeps one colour, so a colour change means a new step.
 const LESSON_PAPERS = ['ink', 'cobalt', 'forest', 'clay', 'cream'] as const;
 function paperFor(card: FeedCard): string {
-  if (card.kind === 'question') return 'cream';
+  if (card.kind === 'question' || card.kind === 'interview' || card.kind === 'build') return 'cream';
+  if (card.kind === 'code') return 'ink';
   if (card.kind === 'flashcard') return 'sun';
   if (card.kind === 'visual' || card.kind === 'video') return 'ink';
   const seed = [...(card.lessonId ?? card.key)].reduce((n, ch) => n + ch.charCodeAt(0), card.step?.index ?? 0);
   return LESSON_PAPERS[seed % LESSON_PAPERS.length];
 }
 
-/** Check steps complete once every question in them has a stored attempt, wherever it was answered. */
-function settleChecks() {
+/** Quiz, coding, interview and build steps complete once their work is stored, wherever it was done. */
+function settle() {
   const { markSection } = useProgress.getState();
-  for (const s of answeredCheckSteps(useProgress.getState())) markSection(s.lessonId, s.index, s.total);
+  for (const s of answeredSteps(useProgress.getState())) markSection(s.lessonId, s.index, s.total);
 }
 
 /** Right answers in a row this session. In context so a new value re-renders only the pills, not every card. */
@@ -80,8 +84,25 @@ function CardBody({ card, onAnswered }: { card: FeedCard; onAnswered: (correct: 
     }
     case 'flashcard':
       return <FlipCard id={card.id} />;
-    case 'open':
-      return <OpenCard title={card.title} text={card.text} to={card.to} cta={card.cta} />;
+    case 'code':
+      return <CodeDrill id={card.id} stage={card.stage} />;
+    case 'interview': {
+      const q = getInterview(card.id);
+      return q ? (
+        <div data-testid={`interview-${card.id}`}>
+          <p className="reel-display mb-3 text-[15px] font-extrabold uppercase tracking-wide">Interview drill: answer as if you were in the room</p>
+          <InterviewRunner question={q} />
+        </div>
+      ) : null;
+    }
+    case 'build':
+      return card.lessonId ? (
+        <div data-testid="build-task">
+          <p className="reel-display text-[15px] font-extrabold uppercase tracking-wide">Build task</p>
+          <h2 className="reel-display mb-3 mt-2 text-[26px] font-extrabold">{card.title}</h2>
+          <BuildTask section={{ kind: 'build', title: card.title, task: card.task, acceptance: card.acceptance }} lessonId={card.lessonId} index={card.index} onDone={() => {}} />
+        </div>
+      ) : null;
   }
 }
 
@@ -184,7 +205,7 @@ export default function Feed() {
   // Only `more` changes the list, so the ref is always the list on screen.
   const shown = useRef<FeedCard[]>([]);
   const [cards, setCards] = useState(() => {
-    settleChecks();
+    settle();
     return (shown.current = buildFeed(useProgress.getState()));
   });
   const [caughtUp, setCaughtUp] = useState(false);
@@ -194,17 +215,17 @@ export default function Feed() {
 
   // Progress made while scrolling changes what comes next, so more cards are built from the live state.
   const more = useCallback(() => {
-    settleChecks();
+    settle();
     const next = buildFeed(useProgress.getState(), { shown: shown.current });
     if (!next.length) return setCaughtUp(true);
     shown.current = [...shown.current, ...next];
     setCards(shown.current);
   }, []);
 
-  const onAnswered = useCallback((correct: boolean) => {
-    settleChecks();
-    setCombo((c) => (correct ? c + 1 : 0));
-  }, []);
+  const onAnswered = useCallback((correct: boolean) => setCombo((c) => (correct ? c + 1 : 0)), []);
+
+  // Any stored answer (quiz, code run, interview, build review) may have finished a lesson step.
+  useEffect(() => useProgress.subscribe((s, prev) => s.attempts !== prev.attempts && settle()), []);
 
   useEffect(() => {
     const root = scroller.current;

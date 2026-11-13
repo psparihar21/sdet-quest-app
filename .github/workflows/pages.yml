@@ -37,6 +37,9 @@ jobs:
         env:
           # A project site is served under /<repo-name>/.
           VITE_BASE_PATH: /${{ github.event.repository.name }}/
+          # Optional sync. Both values are public by design (repository variables, not secrets).
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

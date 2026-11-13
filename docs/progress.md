@@ -74,7 +74,6 @@ E2E scenarios cover: start-here path, wrong answer → weakness queue → surviv
 - **Bundle:** all content ships in the main chunk; per-module splitting would speed first load.
 - **Progress is per browser/device**; export backups to move it.
 - **Not deployed yet.** The GitHub Pages workflow is in place; it needs the repo to be public and Pages enabled.
-- **No sync yet.** Automatic phone/laptop sync (Supabase) is planned as the next stage.
 
 ## Phone scroll feed (2026-11-13)
 
@@ -95,6 +94,15 @@ The first feed read as laptop screens on a phone. It was redesigned from a produ
 - **Reviews:** React review (accidental answer on a cancelled drag, table parsing, focus loss, re-render cost: fixed) and accessibility review (contrast on one paper, progress-bar visibility, focus rings, screen-reader announcements, reduced motion, short screens: fixed).
 - **Not verified:** swipe feel on a real phone (tested with a real browser engine at phone size and with scripted tests, not on a device). Old iOS Safari versions are untested.
 - **Known limit:** every card stays mounted for the session, so a very long session uses more memory.
+
+## Everything in the feed, and sync (2026-11-13)
+
+- **No more "open the full page" cards.** Coding, interview drills and build tasks are done inside the feed in portrait.
+- **Tap-to-code:** order the lines, pick the missing syntax, then write the logic with tap-in syntax chips. JavaScript and SQL run the real tests in the browser sandbox; Java is self-reviewed. Generated from each problem's reference solution, so all 35 problems have it.
+- **Step completion** for quizzes, coding, interviews and build tasks comes from stored attempts, by the same rules as the lesson page.
+- **Sync (code complete, not yet switched on):** optional sign-in with an emailed one-time code; progress from two devices is merged so nothing answered on either is lost. Needs a Supabase project URL and public key at build time. Not tested against a live project yet.
+- Verified: 135 unit tests and 62 end-to-end tests.
+- **Known limits:** the first time through a problem is guided (the order card shows the solution's lines), so that first pass is scaffolded practice; the unguided test is when the problem returns for revision. A reset on one device is undone by the next sync from another device.
 
 ## Next steps
 

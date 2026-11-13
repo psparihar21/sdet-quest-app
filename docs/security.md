@@ -22,6 +22,16 @@ Reviewed by the `ecc:security-reviewer` and `ecc:react-reviewer` agents plus han
 - **Dependencies:** 0 vulnerabilities in shipped packages. 15 remain in development-only tools (the test runner and its helpers); fixing them needs a major-version upgrade of the test runner, which is planned separately. They never reach users.
 - **GitHub Pages build**, served under `/sdet-quest/`: feed loads, service worker scope and install manifest are correct, both code runners work, the pinned theme script runs, an injected inline script is blocked, and a never-visited deep link opens offline.
 
+## Sync (optional)
+
+- Off unless the build is given a Supabase project URL and public key, and nothing is loaded or sent until the learner signs in. The URL must be a `*.supabase.co` address or sync stays off.
+- Sign-in is a one-time code sent by email. No password exists.
+- The key in the build is the public one. Row-level security limits each account to its own row, and a size check caps a row at 3 MB.
+- Progress downloaded from the cloud gets the same schema validation as an imported backup before it is merged.
+- The page policy allows connections to `https://*.supabase.co` and nowhere else outside the site.
+- **Not yet verified against a live project:** the row-level security rules (one account must not read or write another's row; signed-out access must fail).
+- Anyone who opens the public site can request a sign-in code for their own email and store their own row in the project. Turn off new sign-ups in Supabase once your own account exists.
+
 ## Known limits
 
 - **GitHub Pages cannot send response headers.** The page policy is applied as a `<meta>` tag instead (added by `scripts/spa-404.mjs`), which covers script, style, frame and connection rules. Lost on that host: `frame-ancestors` (so the site could be framed by another site), `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, and the separate stricter policy for the code workers. Cloudflare Pages or Netlify keep all of these through `public/_headers`.

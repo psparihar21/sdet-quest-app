@@ -1,5 +1,5 @@
 import { MODULES } from '@/content';
-import { answeredCheckSteps, buildFeed, parseTable, splitBody } from '@/lib/feed';
+import { answeredSteps, buildFeed, parseTable, splitBody } from '@/lib/feed';
 import { initialState, recordAttemptReducer } from '@/store/progress';
 
 const today = '2026-11-13';
@@ -82,10 +82,35 @@ describe('buildFeed', () => {
     const index = lesson.sections.findIndex((s) => s.kind === 'check');
     const section = lesson.sections[index];
     let s = initialState();
-    expect(answeredCheckSteps(s)).toEqual([]);
+    expect(answeredSteps(s)).toEqual([]);
     for (const id of section.kind === 'check' ? section.questionIds : []) s = recordAttemptReducer(s, { itemId: id, itemType: 'question', skill: 'fundamentals', score: 1, topic: 't' }, day(today));
-    expect(answeredCheckSteps(s)).toContainEqual({ lessonId: lesson.id, index, total: lesson.sections.length });
-    expect(answeredCheckSteps({ ...s, lessons: { [lesson.id]: { done: [index] } } })).toEqual([]);
+    expect(answeredSteps(s)).toContainEqual({ lessonId: lesson.id, index, total: lesson.sections.length });
+    expect(answeredSteps({ ...s, lessons: { [lesson.id]: { done: [index] } } })).toEqual([]);
+  });
+
+  it('keeps every lesson step inside the feed, coding and interviews included', () => {
+    const feed = buildFeed(initialState(), { today, limit: 5000 });
+    const kinds = new Set(feed.map((c) => c.kind));
+    expect([...kinds].sort()).toEqual(['build', 'code', 'flashcard', 'interview', 'learn', 'question', 'table', 'video', 'visual']);
+    // A problem is guided the first time: warm-ups first, writing it last.
+    const stages = feed.filter((c) => c.kind === 'code' && c.id === 'js-find-duplicates').map((c) => (c.kind === 'code' ? c.stage : ''));
+    expect(stages).toEqual(['order', 'gaps', 'write']);
+    // Every section of every lesson has a card that can finish it.
+    const finishable = new Set(feed.filter((c) => c.step?.last).map((c) => `${c.step!.lessonId}:${c.step!.index}`));
+    const all = MODULES.flatMap((m) => m.lessons.flatMap((l) => l.sections.map((_, i) => `${l.id}:${i}`)));
+    expect(all.filter((k) => !finishable.has(k))).toEqual([]);
+  });
+
+  it('completes practice, interview and build steps from stored attempts', () => {
+    const base = { skill: 'fundamentals' as const, score: 1, topic: 't' };
+    for (const m of MODULES)
+      for (const l of m.lessons)
+        l.sections.forEach((s, index) => {
+          const item = s.kind === 'practice' ? (['problem', s.problemId] as const) : s.kind === 'interview' ? (['interview', s.interviewId] as const) : s.kind === 'build' ? (['build', `${l.id}#${index}`] as const) : undefined;
+          if (!item) return;
+          const st = recordAttemptReducer(initialState(), { ...base, itemType: item[0], itemId: item[1] }, day(today));
+          expect(answeredSteps(st), `${l.id}:${index}`).toContainEqual({ lessonId: l.id, index, total: l.sections.length });
+        });
   });
 
   it('marks exactly one card per step as the one that completes it', () => {

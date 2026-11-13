@@ -9,7 +9,7 @@ An interactive, gamified learning platform for **SDET 3 / Senior SDET / QA Autom
 - 18 interactive visualizations, including the test pyramid, HashMap buckets, race conditions, WebDriver flow, BrowserContext isolation, the CI pipeline, Kafka, the agent loop, MCP and sharding
 - 40 curated YouTube videos, each checked to exist and to allow embedding
 - A phone **scroll feed**: swipe through lesson cards, quizzes and flashcards instead of reels. Installable and works offline.
-- No account, no server, no paid APIs. Everything runs in the browser.
+- No account needed, no paid APIs. Everything runs in the browser. Optional sync between your devices through your own free Supabase project.
 
 ## Contents
 
@@ -95,7 +95,7 @@ The scores and self-ratings seed your weakness queue and revision schedule. See 
 
 | Page | What it does |
 |---|---|
-| Feed | A full-screen reel: one idea per card, one swipe per card. Revision that is due comes first, then weak spots, then new lesson cards. Quizzes lock in on one tap, true/false is a card you throw left or right, flashcards flip, tables become sideways slide decks |
+| Feed | A full-screen reel: one idea per card, one swipe per card. Revision that is due comes first, then weak spots, then new lesson cards. Quizzes lock in on one tap, true/false is a card you throw left or right, flashcards flip, tables become sideways slide decks. Coding is tap-to-build (order the lines, pick the syntax, write the logic with syntax chips, run real tests); interview drills and build tasks are answered in the feed too |
 | Dashboard | Recommended next step, daily quests, readiness estimates per role, weakest areas, recent performance |
 | Curriculum | Search and filter 24 modules by area, level and status |
 | Learning Studio | Each lesson follows Learn → Visualize → Understand → Practice → Build → Interview; answers are hidden until you attempt |

@@ -42,7 +42,11 @@ Written 2026-11-13 before the feed rebuild. The first feed worked but read as th
 | Quiz: several answers | Tick tiles, then "Lock in". |
 | Feedback | A stamp (CORRECT / NOT QUITE / PARTLY), the right answer shown on the tiles, then the explanation and interviewer follow-up below. A run of right answers shows as a combo counter. |
 | Flashcards | A real card that flips over, then three recall buttons. |
-| Card footer | Where the card comes from, a save button and a link to the full lesson. Double-tap a card to save its lesson. |
+| Coding | Three cards per problem, all built from the reference solution. (1) Tap the lines into order; the assembled code then really runs. (2) Pick the missing syntax from four options. (3) Write the logic in a plain text box, with chips that insert the syntax this problem needs at the cursor, then run the real tests (JavaScript, SQL) or self-review against the checklist (Java). Only card 3 is graded. A problem that comes back for revision shows card 3 alone. |
+| Interview drills | Typed in the feed and scored by the same rubric as on the lesson page. |
+| Build tasks | Drafted and self-reviewed against the acceptance criteria in the feed. |
+| Nothing leaves the feed | There are no "open the full page" cards. Every lesson step can be finished in portrait on a phone. |
+| Card footer | Where the card comes from, a save button and an optional link to the same lesson in the laptop layout. Double-tap a card to save its lesson. |
 | Desktop | The same phone-width column, centred, with previous/next buttons. |
 
 ### States
@@ -52,6 +56,6 @@ Written 2026-11-13 before the feed rebuild. The first feed worked but read as th
 | Loading | Cards are built from local data in one pass; no spinner needed. More are appended one screen before the end. |
 | Empty / caught up | A closing card: nothing due, nothing unread, links to the Coding Lab and Interview Arena. |
 | Error | A broken card is skipped by the app-wide error boundary with a reload button; saved progress is untouched. |
-| Partial | Steps that need a keyboard (code, typed interview answers) appear as a card that opens the full page. |
+| Partial | Not applicable any more: every step type has an in-feed card. Skill-level gaps from a diagnostic have no single card; the course order covers them. |
 | Success | Stamp, combo counter, lesson progress bar fills. |
 | Permission | Not applicable: no accounts or permissions. Storage-blocked and storage-full warnings show as a bar at the top. |
